@@ -7,12 +7,12 @@ import { SearchBar } from '@/components/common/SearchBar';
 import { RestaurantCard } from '@/components/common/RestaurantCard';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useSearchRestaurants } from '@/hooks/useSearchRestaurants';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const { searchRestaurants, searchResults, isSearching } = useSearchRestaurants();
 
@@ -95,5 +95,21 @@ export default function SearchPage() {
       
       <Footer />
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <LoadingSpinner size={32} />
+        </main>
+        <Footer />
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 } 
