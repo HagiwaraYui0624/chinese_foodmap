@@ -38,10 +38,12 @@ app/
 │       ├── search/
 │       │   └── route.ts    # GET /api/restaurants/search
 │       └── [id]/
-│           └── route.ts    # GET /api/restaurants/[id]
+│           └── route.ts    # GET, PUT, DELETE /api/restaurants/[id]（編集・削除対応）
 ├── restaurant/             # 店舗詳細ページ
 │   └── [id]/
-│       └── page.tsx        # /restaurant/[id]
+│       ├── page.tsx        # /restaurant/[id]
+│       └── edit/
+│           └── page.tsx    # /restaurant/[id]/edit（編集ページ追加）
 ├── add-restaurant/         # 店舗投稿ページ
 │   └── page.tsx            # /add-restaurant
 └── search/                 # 検索結果ページ
@@ -53,7 +55,8 @@ app/
 | ファイル | URL | 説明 |
 |---------|-----|------|
 | `app/page.tsx` | `/` | トップページ（店舗一覧・検索） |
-| `app/restaurant/[id]/page.tsx` | `/restaurant/[id]` | 店舗詳細ページ |
+| `app/restaurant/[id]/page.tsx` | `/restaurant/[id]` | 店舗詳細ページ（編集・削除ボタン追加） |
+| `app/restaurant/[id]/edit/page.tsx` | `/restaurant/[id]/edit` | 店舗編集ページ（新規追加） |
 | `app/add-restaurant/page.tsx` | `/add-restaurant` | 店舗投稿ページ |
 | `app/search/page.tsx` | `/search` | 検索結果ページ |
 
@@ -62,7 +65,7 @@ app/
 | ファイル | エンドポイント | メソッド | 説明 |
 |---------|---------------|---------|------|
 | `app/api/restaurants/route.ts` | `/api/restaurants` | GET, POST | 店舗一覧取得・追加 |
-| `app/api/restaurants/[id]/route.ts` | `/api/restaurants/[id]` | GET | 店舗詳細取得 |
+| `app/api/restaurants/[id]/route.ts` | `/api/restaurants/[id]` | GET, PUT, DELETE | 店舗詳細取得・編集・削除（編集・削除対応） |
 | `app/api/restaurants/search/route.ts` | `/api/restaurants/search` | GET | 店舗検索 |
 
 ### 2. components/ (Reactコンポーネント)
@@ -84,7 +87,7 @@ components/
 │   ├── LoadingSpinner.tsx  # ローディング
 │   └── ErrorMessage.tsx    # エラーメッセージ
 └── forms/                  # フォームコンポーネント
-    └── RestaurantForm.tsx  # 店舗投稿フォーム
+    └── RestaurantForm.tsx  # 店舗投稿・編集フォーム
 ```
 
 #### 2.1 共通コンポーネント詳細
@@ -165,7 +168,7 @@ hooks/
 ├── useRestaurants.ts       # 店舗一覧取得
 ├── useRestaurant.ts        # 店舗詳細取得
 ├── useSearchRestaurants.ts # 店舗検索
-├── useRestaurantForm.ts    # 店舗投稿フォーム
+├── useRestaurantForm.ts    # 店舗投稿・編集フォーム
 └── index.ts                # フックのエクスポート
 ```
 
@@ -176,7 +179,7 @@ hooks/
 | useRestaurants | `hooks/useRestaurants.ts` | 店舗一覧の取得・管理 |
 | useRestaurant | `hooks/useRestaurant.ts` | 個別店舗の取得・管理 |
 | useSearchRestaurants | `hooks/useSearchRestaurants.ts` | 検索機能 |
-| useRestaurantForm | `hooks/useRestaurantForm.ts` | 投稿フォーム管理 |
+| useRestaurantForm | `hooks/useRestaurantForm.ts` | 投稿・編集フォーム管理（編集モード対応） |
 
 ### 5. stores/ (Zustandストア)
 

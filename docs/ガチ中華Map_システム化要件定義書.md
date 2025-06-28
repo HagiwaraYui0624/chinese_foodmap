@@ -48,6 +48,11 @@
 - 新しい店舗情報の追加
 - 基本的な情報入力フォーム
 
+#### 2.1.4 店舗編集・削除機能
+- 既存店舗情報の編集
+- 店舗情報の削除
+- 編集・削除は各店舗詳細画面から実行可能
+
 ### 2.2 非機能要件
 
 #### 2.2.1 パフォーマンス
@@ -84,6 +89,7 @@
 | データベース   | Supabase              | latest           | データ管理           |
 | デプロイ       | Vercel                | ―                | Preview / Production |
 | CI             | GitHub Actions        | ―                | test → lint → deploy |
+| React          | React                 | 18.2.0           | UI ライブラリ        |
 
 ### 3.2 外部サービス
 
@@ -135,12 +141,17 @@ CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 #### 5.1.2 店舗詳細画面（/restaurant/[id]）
 - 店舗基本情報
 - 地図へのリンク（Google Maps）
+- 編集・削除ボタン
 
 #### 5.1.3 店舗投稿画面（/add-restaurant）
 - 店舗情報入力フォーム
 - 投稿完了画面
 
-#### 5.1.4 検索結果画面（/search）
+#### 5.1.4 店舗編集画面（/restaurant/[id]/edit）
+- 既存店舗情報の編集フォーム
+- 更新完了画面
+
+#### 5.1.5 検索結果画面（/search）
 - 検索結果の一覧表示
 - 検索条件の表示
 
@@ -158,6 +169,8 @@ CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 GET    /api/restaurants          # 店舗一覧取得
 GET    /api/restaurants/[id]     # 店舗詳細取得
 POST   /api/restaurants          # 店舗追加
+PUT    /api/restaurants/[id]     # 店舗編集
+DELETE /api/restaurants/[id]     # 店舗削除
 GET    /api/restaurants/search   # 店舗検索
 ```
 
@@ -242,7 +255,6 @@ interface ApiResponse<T> {
 - お気に入り機能
 - レビュー機能
 - 画像アップロード機能
-- 編集機能
 - メニュー機能
 
 ### 12.2 地図機能

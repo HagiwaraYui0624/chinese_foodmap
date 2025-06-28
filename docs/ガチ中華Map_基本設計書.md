@@ -122,7 +122,8 @@ interface SearchParams {
 | 画面ID | 画面名 | URL | 説明 |
 |--------|--------|-----|------|
 | TOP | トップページ | / | 店舗一覧と検索機能 |
-| DETAIL | 店舗詳細 | /restaurant/[id] | 店舗の詳細情報 |
+| DETAIL | 店舗詳細 | /restaurant/[id] | 店舗の詳細情報（編集・削除ボタン追加） |
+| EDIT | 店舗編集 | /restaurant/[id]/edit | 店舗情報の編集（新規追加） |
 | ADD | 店舗投稿 | /add-restaurant | 新しい店舗の投稿 |
 | SEARCH | 検索結果 | /search | 検索結果の表示 |
 
@@ -196,7 +197,7 @@ interface RestaurantCardProps {
 │ └─────────────────────────────────┘ │
 ├─────────────────────────────────────┤
 │ Action Buttons                      │
-│ [Back] [Add Restaurant]             │
+│ [Back] [Edit] [Delete] [Add Restaurant] │
 ├─────────────────────────────────────┤
 │ Footer                              │
 └─────────────────────────────────────┘
@@ -211,56 +212,40 @@ interface RestaurantCardProps {
   - Google Mapsへのリンク
 - ActionButtons
   - 戻るボタン
+  - 編集ボタン（新規追加）
+  - 削除ボタン（新規追加）
   - 店舗投稿ボタン
 
-#### 3.2.3 店舗投稿ページ（ADD）
+#### 3.2.3 店舗編集ページ（EDIT）
 
 **レイアウト構成:**
 ```
 ┌─────────────────────────────────────┐
 │ Header                              │
 ├─────────────────────────────────────┤
-│ Restaurant Form                     │
+│ Restaurant Edit Form                │
 │ ┌─────────────────────────────────┐ │
-│ │ Basic Information               │ │
-│ │ ┌─────────────────────────────┐ │ │
-│ │ │ Name: [_________________]   │ │ │
-│ │ │ Address: [________________] │ │ │
-│ │ │ Phone: [_________________]  │ │ │
-│ │ └─────────────────────────────┘ │ │
-│ │                                 │ │
-│ │ Business Information            │ │
-│ │ ┌─────────────────────────────┐ │ │
-│ │ │ Business Hours              │ │ │
-│ │ │ Holidays: [_______________] │ │ │
-│ │ │ Price Range: [____________] │ │ │
-│ │ │ Seating Capacity: [_______] │ │ │
-│ │ │ Parking: [Yes/No]          │ │ │
-│ │ │ Reservation Required: [Y/N] │ │ │
-│ │ │ Payment Methods: [________] │ │ │
-│ │ └─────────────────────────────┘ │ │
+│ │ 既存情報を編集できるフォーム      │ │
 │ └─────────────────────────────────┘ │
 ├─────────────────────────────────────┤
 │ Action Buttons                      │
-│ [Cancel] [Submit]                   │
+│ [Cancel] [Update]                   │
 ├─────────────────────────────────────┤
 │ Footer                              │
 └─────────────────────────────────────┘
 ```
 
 **フォーム項目:**
-- 基本情報
-  - 店舗名（必須）
-  - 住所（必須）
-  - 電話番号
-- 営業情報
-  - 営業時間
-  - 定休日
-  - 価格帯
-  - 席数
-  - 駐車場の有無
-  - 予約必要フラグ
-  - 決済方法
+- 店舗名（必須）
+- 住所（必須）
+- 電話番号
+- 営業時間
+- 定休日
+- 価格帯
+- 席数
+- 駐車場の有無
+- 予約必要フラグ
+- 決済方法
 
 #### 3.2.4 検索結果ページ（SEARCH）
 
@@ -432,6 +417,8 @@ interface AddPageProps {
 | GET | /api/restaurants | 店舗一覧取得 | page, limit |
 | GET | /api/restaurants/[id] | 店舗詳細取得 | id |
 | POST | /api/restaurants | 店舗追加 | restaurant data |
+| PUT | /api/restaurants/[id] | 店舗編集（新規追加） | id, restaurant data |
+| DELETE | /api/restaurants/[id] | 店舗削除（新規追加） | id |
 | GET | /api/restaurants/search | 店舗検索 | query, area |
 
 ### 6.2 レスポンス形式
@@ -484,6 +471,8 @@ interface AppState {
   fetchRestaurants: () => Promise<void>;
   searchRestaurants: (query: string) => Promise<void>;
   setCurrentRestaurant: (restaurant: Restaurant) => void;
+  updateRestaurant: (id: string, updates: Partial<Restaurant>) => void;
+  deleteRestaurant: (id: string) => void;
   clearError: () => void;
 }
 ```

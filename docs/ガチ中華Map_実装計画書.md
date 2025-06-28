@@ -41,7 +41,7 @@ npx create-next-app@14.2.30 . --typescript --tailwind --eslint --app --import-al
 pnpm install
 
 # 3. Next.jsのバージョンを要件定義書に合わせて固定
-pnpm add next@14.2.30 react@18 react-dom@18
+pnpm add next@14.2.30 react@18.2.0 react-dom@18.2.0
 
 # 4. Tailwind CSSのバージョンを要件定義書に合わせて固定
 pnpm add tailwindcss@3.4.17 postcss autoprefixer
@@ -203,18 +203,18 @@ CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 
 ### 4.2 APIルート実装
 - `app/api/restaurants/route.ts`：GET/POST（一覧・追加）
-- `app/api/restaurants/[id]/route.ts`：GET（詳細）
+- `app/api/restaurants/[id]/route.ts`：GET/PUT/DELETE（詳細・編集・削除）
 - `app/api/restaurants/search/route.ts`：GET（検索）
 
 ### 4.3 Zustandストア実装
-- `stores/restaurantStore.ts`：店舗データ管理
+- `stores/restaurantStore.ts`：店舗データ管理（updateRestaurant, deleteRestaurant 追加）
 - `stores/searchStore.ts`：検索状態管理
 
 ### 4.4 カスタムフック実装
 - `hooks/useRestaurants.ts`：一覧取得
 - `hooks/useRestaurant.ts`：詳細取得
 - `hooks/useSearchRestaurants.ts`：検索
-- `hooks/useRestaurantForm.ts`：投稿フォーム管理
+- `hooks/useRestaurantForm.ts`：投稿・編集フォーム管理（編集・初期値対応）
 
 ### 4.5 UIコンポーネント実装
 - `components/common/Header.tsx`：ヘッダー
@@ -224,11 +224,12 @@ CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 - `components/common/MapLink.tsx`：Google Mapsリンク
 - `components/common/LoadingSpinner.tsx`：ローディング
 - `components/common/ErrorMessage.tsx`：エラー表示
-- `components/forms/RestaurantForm.tsx`：店舗投稿フォーム
+- `components/forms/RestaurantForm.tsx`：店舗投稿・編集フォーム（mode/initialData対応）
 
 ### 4.6 ページ実装
 - `app/page.tsx`：トップページ（店舗一覧・検索）
-- `app/restaurant/[id]/page.tsx`：店舗詳細
+- `app/restaurant/[id]/page.tsx`：店舗詳細（編集・削除ボタン追加）
+- `app/restaurant/[id]/edit/page.tsx`：店舗編集（新規追加）
 - `app/add-restaurant/page.tsx`：店舗投稿
 - `app/search/page.tsx`：検索結果
 
