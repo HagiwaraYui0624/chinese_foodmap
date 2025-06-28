@@ -28,6 +28,12 @@ export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
       parking: false,
       reservation_required: false,
       payment_methods: [],
+      images: {
+        exterior: [],
+        interior: [],
+        food: [],
+        menu: [],
+      },
     },
   });
 
@@ -45,6 +51,12 @@ export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
         parking: options.initialData.parking,
         reservation_required: options.initialData.reservation_required,
         payment_methods: options.initialData.payment_methods || [],
+        images: options.initialData.images || {
+          exterior: [],
+          interior: [],
+          food: [],
+          menu: [],
+        },
       });
     }
   }, [options?.initialData, options?.mode, form]);

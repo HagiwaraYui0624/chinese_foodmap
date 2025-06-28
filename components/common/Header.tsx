@@ -27,7 +27,7 @@ export const Header = () => {
           {!hideNav && (
             <nav className="flex items-center space-x-4">
               <Link href="/add-restaurant">
-                <Button size="sm" className="flex items-center gap-2">
+                <Button size="sm" variant="destructive" className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
                   店舗登録
                 </Button>

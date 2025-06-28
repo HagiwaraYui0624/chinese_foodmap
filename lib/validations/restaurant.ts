@@ -10,6 +10,13 @@ export const businessHoursSchema = z.object({
   sunday: z.string().optional(),
 });
 
+export const restaurantImagesSchema = z.object({
+  exterior: z.array(z.string().url('有効なURLを入力してください')).optional(),
+  interior: z.array(z.string().url('有効なURLを入力してください')).optional(),
+  food: z.array(z.string().url('有効なURLを入力してください')).optional(),
+  menu: z.array(z.string().url('有効なURLを入力してください')).optional(),
+});
+
 export const createRestaurantSchema = z.object({
   name: z.string().min(1, '店舗名は必須です'),
   address: z.string().min(1, '住所は必須です'),
@@ -21,6 +28,7 @@ export const createRestaurantSchema = z.object({
   parking: z.boolean(),
   reservation_required: z.boolean(),
   payment_methods: z.array(z.string()).optional(),
+  images: restaurantImagesSchema.optional(),
 });
 
 export const updateRestaurantSchema = createRestaurantSchema.partial().extend({

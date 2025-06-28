@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Clock, Car, Calendar } from 'lucide-react';
+import { MapPin, Phone, Clock, Car, Calendar, Image as ImageIcon } from 'lucide-react';
 import { Restaurant } from '@/lib/types/restaurant';
 import Link from 'next/link';
 
@@ -19,11 +19,40 @@ export const RestaurantCard = ({ restaurant, onClick, showDetails = false }: Res
     }
   };
 
+  // 最初の画像を取得（外装、内装、料理、メニューの順）
+  const getFirstImage = () => {
+    if (restaurant.images?.exterior?.[0]) return restaurant.images.exterior[0];
+    if (restaurant.images?.interior?.[0]) return restaurant.images.interior[0];
+    if (restaurant.images?.food?.[0]) return restaurant.images.food[0];
+    if (restaurant.images?.menu?.[0]) return restaurant.images.menu[0];
+    return null;
+  };
+
+  const firstImage = getFirstImage();
+
   return (
     <Card 
       className={`cursor-pointer hover:shadow-md transition-shadow ${onClick ? 'hover:shadow-lg' : ''}`}
       onClick={handleClick}
     >
+      {/* 画像表示 */}
+      {firstImage && (
+        <div className="relative h-48 overflow-hidden rounded-t-lg">
+          <img
+            src={firstImage}
+            alt={restaurant.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+            <ImageIcon className="h-3 w-3" />
+            {(restaurant.images?.exterior?.length || 0) + 
+             (restaurant.images?.interior?.length || 0) + 
+             (restaurant.images?.food?.length || 0) + 
+             (restaurant.images?.menu?.length || 0)}枚
+          </div>
+        </div>
+      )}
+
       <CardHeader>
         <CardTitle className="text-xl">{restaurant.name}</CardTitle>
         <div className="flex items-center text-gray-600">
