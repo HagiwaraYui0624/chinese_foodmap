@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Phone, Clock, Car, Calendar } from 'lucide-react';
 import { Restaurant } from '@/lib/types/restaurant';
+import Link from 'next/link';
 
 interface RestaurantCardProps {
   restaurant: Restaurant;
@@ -122,6 +123,11 @@ export const RestaurantCard = ({ restaurant, onClick, showDetails = false }: Res
                 {restaurant.price_range}
               </Badge>
             )}
+            <div className="pt-2">
+              <Link href={`/restaurant/${restaurant.id}`} passHref legacyBehavior>
+                <a className="inline-block px-4 py-1 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">詳細を見る</a>
+              </Link>
+            </div>
           </div>
         )}
       </CardContent>

@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { User as UserIcon } from 'lucide-react';
 
 export const UserMenu = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -70,18 +79,21 @@ export const UserMenu = () => {
   }
 
   return (
-    <div className="flex items-center gap-4">
-      <span className="text-sm text-gray-600">
-        {user.email}
-      </span>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleLogout}
-        disabled={isLoggingOut}
-      >
-        {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <UserIcon className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>
+          {user.nickname || user.email}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+          {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }; 

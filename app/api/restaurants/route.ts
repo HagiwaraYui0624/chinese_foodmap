@@ -13,6 +13,9 @@ const checkAuth = async (request: NextRequest) => {
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.replace('Bearer ', '') || request.cookies.get('auth_token')?.value;
 
+  console.log('Auth header:', authHeader);
+  console.log('Token:', token);
+
   if (!token) {
     throw new Error('認証が必要です');
   }
@@ -21,12 +24,38 @@ const checkAuth = async (request: NextRequest) => {
     throw new Error('無効なトークンです');
   }
 
-  const user = await authUtils.getCurrentUser();
-  if (!user) {
-    throw new Error('ユーザーが見つかりません');
-  }
+  // トークンからユーザーIDを取得
+  try {
+    const decoded = JSON.parse(atob(token));
+    console.log('Decoded token:', decoded);
+    
+    const userId = decoded.userId;
 
-  return user;
+    if (!userId) {
+      throw new Error('ユーザーIDが見つかりません');
+    }
+
+    // データベースからユーザー情報を取得
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    console.log('Database query result:', { user, error });
+
+    if (error || !user) {
+      throw new Error('ユーザーが見つかりません');
+    }
+
+    return user;
+  } catch (error) {
+    console.log('Token processing error:', error);
+    if (error instanceof Error && error.message.includes('ユーザー')) {
+      throw error;
+    }
+    throw new Error('トークンの解析に失敗しました');
+  }
 };
 
 // GET: レストラン一覧取得

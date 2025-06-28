@@ -26,12 +26,6 @@ export const Header = () => {
           
           {!hideNav && (
             <nav className="flex items-center space-x-4">
-              <Link
-                href="/"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                ホーム
-              </Link>
               <Link href="/add-restaurant">
                 <Button size="sm" className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />

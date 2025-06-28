@@ -60,10 +60,12 @@ export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
 
       const method = options?.mode === 'edit' ? 'PUT' : 'POST';
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(data),
       });
@@ -73,7 +75,8 @@ export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
         throw new Error(errorData.error || 'レストランの操作に失敗しました');
       }
 
-      const restaurant: Restaurant = await response.json();
+      const responseData = await response.json();
+      const restaurant: Restaurant = responseData.data;
       
       if (options?.mode === 'edit') {
         updateRestaurant(restaurant.id, restaurant);
