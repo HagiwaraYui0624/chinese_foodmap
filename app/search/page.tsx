@@ -18,16 +18,12 @@ function SearchPageContent() {
 
   useEffect(() => {
     const query = searchParams.get('query');
-    const price_range = searchParams.get('price_range');
-    const parking = searchParams.get('parking');
-    const reservation_required = searchParams.get('reservation_required');
+    const area = searchParams.get('area');
 
-    if (query || price_range || parking || reservation_required) {
+    if (query || area) {
       searchRestaurants({
         query: query || undefined,
-        price_range: price_range || undefined,
-        parking: parking === 'true' ? true : parking === 'false' ? false : undefined,
-        reservation_required: reservation_required === 'true' ? true : reservation_required === 'false' ? false : undefined,
+        area: area || undefined,
       });
     }
   }, [searchParams, searchRestaurants]);

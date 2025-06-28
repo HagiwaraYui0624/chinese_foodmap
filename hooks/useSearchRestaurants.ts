@@ -22,14 +22,8 @@ export const useSearchRestaurants = () => {
       if (params.query) {
         searchParams.append('query', params.query);
       }
-      if (params.price_range) {
-        searchParams.append('price_range', params.price_range);
-      }
-      if (params.parking !== undefined) {
-        searchParams.append('parking', params.parking.toString());
-      }
-      if (params.reservation_required !== undefined) {
-        searchParams.append('reservation_required', params.reservation_required.toString());
+      if (params.area) {
+        searchParams.append('area', params.area);
       }
 
       const response = await fetch(`/api/restaurants/search?${searchParams.toString()}`);

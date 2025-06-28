@@ -1,85 +1,62 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { RestaurantForm } from '@/components/forms/RestaurantForm';
 import { Header } from '@/components/common/Header';
 import { Footer } from '@/components/common/Footer';
+import { AuthGuard } from '@/components/auth/AuthGuard';
+import { useRestaurant } from '@/hooks/useRestaurant';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
-import { RestaurantForm } from '@/components/forms/RestaurantForm';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import { useRestaurant } from '@/hooks/useRestaurant';
 
-export default function EditRestaurantPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params.id as string;
-  const { restaurant, isLoading, error } = useRestaurant(id);
+interface EditRestaurantPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function EditRestaurantPage({ params }: EditRestaurantPageProps) {
+  const { restaurant, isLoading, error } = useRestaurant(params.id);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <LoadingSpinner size={32} />
-        </main>
-        <Footer />
-      </div>
+      <AuthGuard>
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-1 flex items-center justify-center">
+            <LoadingSpinner />
+          </main>
+          <Footer />
+        </div>
+      </AuthGuard>
     );
   }
 
   if (error || !restaurant) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <ErrorMessage message={error || 'レストランが見つかりません'} />
-            <Link href="/" className="mt-4 inline-block">
-              <Button variant="outline">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                ホームに戻る
-              </Button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <AuthGuard>
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-1 flex items-center justify-center">
+            <ErrorMessage message={error || '店舗情報の取得に失敗しました'} />
+          </main>
+          <Footer />
+        </div>
+      </AuthGuard>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      
-      <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6">
-            <Link href={`/restaurant/${id}`}>
-              <Button variant="ghost">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                詳細に戻る
-              </Button>
-            </Link>
+    <AuthGuard>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <h1 className="text-3xl font-bold mb-8">店舗を編集</h1>
+            <RestaurantForm mode="edit" initialData={restaurant} />
           </div>
-
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">店舗情報を編集</h1>
-            <p className="text-gray-600 mt-2">{restaurant.name} の情報を編集できます</p>
-          </div>
-
-          <RestaurantForm 
-            mode="edit" 
-            initialData={restaurant}
-            onSuccess={(updatedRestaurant) => {
-              router.push(`/restaurant/${updatedRestaurant.id}`);
-            }}
-          />
-        </div>
-      </main>
-      
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </AuthGuard>
   );
 } 

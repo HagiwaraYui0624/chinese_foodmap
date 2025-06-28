@@ -5,7 +5,7 @@
 ### 1.1 ドキュメント情報
 - **作成日**: 2024年12月28日
 - **作成者**: システム開発チーム
-- **バージョン**: 1.1
+- **バージョン**: 1.3
 - **対象**: ガチ中華Map MVP版
 
 ### 1.2 設計方針
@@ -20,6 +20,16 @@
 
 ```
 ┌─────────────────┐
+│     users       │
+├─────────────────┤
+│ id (PK)         │
+│ email           │
+│ password_hash   │
+│ created_at      │
+│ updated_at      │
+└─────────────────┘
+
+┌─────────────────┐
 │   restaurants   │
 ├─────────────────┤
 │ id (PK)         │
@@ -33,6 +43,7 @@
 │ parking         │
 │ reservation_required │
 │ payment_methods │
+│ user_id (FK)    │
 │ created_at      │
 │ updated_at      │
 └─────────────────┘
@@ -40,7 +51,17 @@
 
 ### 2.2 テーブル定義
 
-#### 2.2.1 restaurants（店舗テーブル）
+#### 2.2.1 users（ユーザーテーブル）
+
+| カラム名 | データ型 | 制約 | 説明 |
+|---------|---------|------|------|
+| id | UUID | PRIMARY KEY | ユーザーID |
+| email | VARCHAR(255) | NOT NULL UNIQUE | メールアドレス |
+| password_hash | VARCHAR(255) | NOT NULL | ハッシュ化されたパスワード |
+| created_at | TIMESTAMP | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMP | DEFAULT NOW() | 更新日時 |
+
+#### 2.2.2 restaurants（店舗テーブル）
 
 | カラム名 | データ型 | 制約 | 説明 |
 |---------|---------|------|------|
@@ -55,6 +76,7 @@
 | parking | BOOLEAN | DEFAULT false | 駐車場の有無 |
 | reservation_required | BOOLEAN | DEFAULT false | 予約必要フラグ |
 | payment_methods | TEXT[] | NULL | 決済方法の配列 |
+| user_id | UUID | NOT NULL | ユーザID |
 | created_at | TIMESTAMP | DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMP | DEFAULT NOW() | 更新日時 |
 
@@ -74,15 +96,27 @@
 ### 2.3 インデックス設計
 
 ```sql
+-- users テーブル
+CREATE INDEX idx_users_email ON users(email);
+
 -- restaurants テーブル
 CREATE INDEX idx_restaurants_name ON restaurants(name);
 CREATE INDEX idx_restaurants_address ON restaurants(address);
 CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
+CREATE INDEX idx_restaurants_user_id ON restaurants(user_id);
 ```
 
 ### 2.4 データ型定義（TypeScript）
 
 ```typescript
+// ユーザー情報
+interface User {
+  id: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // 店舗情報
 interface Restaurant {
   id: string;
@@ -96,6 +130,7 @@ interface Restaurant {
   parking: boolean;
   reservation_required: boolean;
   payment_methods?: string[];
+  user_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -113,6 +148,17 @@ interface SearchParams {
   query?: string;
   area?: string;
 }
+
+// 認証関連
+interface AuthCredentials {
+  email: string;
+  password: string;
+}
+
+interface AuthResponse {
+  user: User;
+  token: string;
+}
 ```
 
 ## 3. 画面設計
@@ -126,6 +172,8 @@ interface SearchParams {
 | EDIT | 店舗編集 | /restaurant/[id]/edit | 店舗情報の編集（新規追加） |
 | ADD | 店舗投稿 | /add-restaurant | 新しい店舗の投稿 |
 | SEARCH | 検索結果 | /search | 検索結果の表示 |
+| LOGIN | ログイン | /login | ユーザーログイン |
+| SIGNUP | アカウント作成 | /signup | 新規ユーザー登録 |
 
 ### 3.2 画面詳細設計
 
@@ -407,153 +455,3 @@ interface AddPageProps {
   onCancel: () => void;
 }
 ```
-
-## 6. API設計
-
-### 6.1 エンドポイント一覧
-
-| メソッド | エンドポイント | 説明 | パラメータ |
-|---------|---------------|------|-----------|
-| GET | /api/restaurants | 店舗一覧取得 | page, limit |
-| GET | /api/restaurants/[id] | 店舗詳細取得 | id |
-| POST | /api/restaurants | 店舗追加 | restaurant data |
-| PUT | /api/restaurants/[id] | 店舗編集（新規追加） | id, restaurant data |
-| DELETE | /api/restaurants/[id] | 店舗削除（新規追加） | id |
-| GET | /api/restaurants/search | 店舗検索 | query, area |
-
-### 6.2 レスポンス形式
-
-#### 6.2.1 成功レスポンス
-```typescript
-interface ApiSuccessResponse<T> {
-  success: true;
-  data: T;
-  message?: string;
-}
-```
-
-#### 6.2.2 エラーレスポンス
-```typescript
-interface ApiErrorResponse {
-  success: false;
-  error: string;
-  code?: string;
-}
-```
-
-### 6.3 データフロー
-
-```
-Frontend → API Route → Supabase Client → Database
-    ↑                                           ↓
-    ←────────── Response ←──────────────────────┘
-```
-
-## 7. 状態管理設計
-
-### 7.1 Zustand Store
-
-```typescript
-interface AppState {
-  // 店舗データ
-  restaurants: Restaurant[];
-  currentRestaurant: Restaurant | null;
-  
-  // 検索状態
-  searchQuery: string;
-  searchResults: Restaurant[];
-  
-  // UI状態
-  loading: boolean;
-  error: string | null;
-  
-  // Actions
-  fetchRestaurants: () => Promise<void>;
-  searchRestaurants: (query: string) => Promise<void>;
-  setCurrentRestaurant: (restaurant: Restaurant) => void;
-  updateRestaurant: (id: string, updates: Partial<Restaurant>) => void;
-  deleteRestaurant: (id: string) => void;
-  clearError: () => void;
-}
-```
-
-### 7.2 TanStack Query
-
-```typescript
-// 店舗一覧取得
-const useRestaurants = () => {
-  return useQuery({
-    queryKey: ['restaurants'],
-    queryFn: () => fetchRestaurants(),
-  });
-};
-
-// 店舗詳細取得
-const useRestaurant = (id: string) => {
-  return useQuery({
-    queryKey: ['restaurant', id],
-    queryFn: () => fetchRestaurant(id),
-    enabled: !!id,
-  });
-};
-
-// 検索
-const useSearchRestaurants = (query: string) => {
-  return useQuery({
-    queryKey: ['search', query],
-    queryFn: () => searchRestaurants(query),
-    enabled: !!query,
-  });
-};
-```
-
-## 8. セキュリティ設計
-
-### 8.1 入力値検証
-
-#### 8.1.1 フロントエンド（Zod）
-```typescript
-const restaurantSchema = z.object({
-  name: z.string().min(1, '店舗名は必須です').max(255),
-  address: z.string().min(1, '住所は必須です'),
-  phone: z.string().optional(),
-  price_range: z.string().optional(),
-  seating_capacity: z.number().positive().optional(),
-  parking: z.boolean(),
-  reservation_required: z.boolean(),
-  payment_methods: z.array(z.string()).optional(),
-});
-```
-
-#### 8.1.2 バックエンド
-- Supabase RLS（Row Level Security）の活用
-- 入力値のサニタイゼーション
-- SQLインジェクション対策
-
-### 8.2 エラーハンドリング
-- 機密情報の漏洩防止
-- 適切なエラーメッセージ
-- ログ出力の制御
-
-## 9. パフォーマンス設計
-
-### 9.1 フロントエンド最適化
-- 画像の最適化
-- コード分割（Code Splitting）
-- 遅延読み込み（Lazy Loading）
-
-### 9.2 バックエンド最適化
-- データベースクエリの最適化
-- キャッシュの活用
-- ページネーション
-
-### 9.3 監視・計測
-- Core Web Vitals の計測
-- エラー監視
-- パフォーマンス監視
-
----
-
-**作成日**: 2024年12月28日  
-**作成者**: システム開発チーム  
-**バージョン**: 1.1 

@@ -1,51 +1,55 @@
-import { useEffect } from 'react';
-import { useRestaurantStore } from '@/stores/restaurantStore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Restaurant } from '@/lib/types/restaurant';
+import { toast } from 'sonner';
+
+const fetchRestaurant = async (id: string): Promise<Restaurant> => {
+  const response = await fetch(`/api/restaurants/${id}`);
+  if (!response.ok) {
+    throw new Error('店舗情報の取得に失敗しました');
+  }
+  const data = await response.json();
+  return data.data;
+};
+
+const deleteRestaurant = async (id: string): Promise<void> => {
+  const response = await fetch(`/api/restaurants/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('店舗の削除に失敗しました');
+  }
+};
 
 export const useRestaurant = (id: string) => {
+  const queryClient = useQueryClient();
+
   const {
-    selectedRestaurant,
+    data: restaurant,
     isLoading,
     error,
-    setSelectedRestaurant,
-    setLoading,
-    setError,
-    clearError
-  } = useRestaurantStore();
+    refetch,
+  } = useQuery({
+    queryKey: ['restaurant', id],
+    queryFn: () => fetchRestaurant(id),
+    enabled: !!id,
+  });
 
-  const fetchRestaurant = async () => {
-    try {
-      setLoading(true);
-      clearError();
-
-      const response = await fetch(`/api/restaurants/${id}`);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('レストランが見つかりません');
-        }
-        throw new Error('レストラン詳細の取得に失敗しました');
-      }
-
-      const data: Restaurant = await response.json();
-      setSelectedRestaurant(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (id) {
-      fetchRestaurant();
-    }
-  }, [id]);
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteRestaurant(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+      toast.success('店舗を削除しました');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : '店舗の削除に失敗しました');
+    },
+  });
 
   return {
-    restaurant: selectedRestaurant,
+    restaurant,
     isLoading,
-    error,
-    refetch: fetchRestaurant
+    error: error?.message || null,
+    refetch,
+    deleteRestaurant: deleteMutation.mutateAsync,
   };
 }; 

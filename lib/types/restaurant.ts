@@ -7,21 +7,19 @@ export interface Restaurant {
   holidays?: string;
   price_range?: string;
   seating_capacity?: number;
-  parking?: boolean;
-  reservation_required?: boolean;
+  parking: boolean;
+  reservation_required: boolean;
   payment_methods?: string[];
+  user_id: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface BusinessHours {
-  monday?: string;
-  tuesday?: string;
-  wednesday?: string;
-  thursday?: string;
-  friday?: string;
-  saturday?: string;
-  sunday?: string;
+  [key: string]: {
+    open: string;
+    close: string;
+  };
 }
 
 export interface CreateRestaurantRequest {
@@ -43,7 +41,5 @@ export interface UpdateRestaurantRequest extends Partial<CreateRestaurantRequest
 
 export interface SearchParams {
   query?: string;
-  price_range?: string;
-  parking?: boolean;
-  reservation_required?: boolean;
+  area?: string;
 } 

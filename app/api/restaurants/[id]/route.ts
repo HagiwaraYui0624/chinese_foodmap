@@ -1,5 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/utils/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { updateRestaurantSchema } from '@/lib/validations/restaurant';
+import { authUtils } from '@/lib/utils/auth';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// 認証チェック関数
+const checkAuth = async (request: NextRequest) => {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '') || request.cookies.get('auth_token')?.value;
+
+  if (!token) {
+    throw new Error('認証が必要です');
+  }
+
+  if (!authUtils.verifyToken(token)) {
+    throw new Error('無効なトークンです');
+  }
+
+  const user = await authUtils.getCurrentUser();
+  if (!user) {
+    throw new Error('ユーザーが見つかりません');
+  }
+
+  return user;
+};
+
+// 店舗の所有者チェック関数
+const checkOwnership = async (restaurantId: string, userId: string) => {
+  const { data: restaurant, error } = await supabase
+    .from('restaurants')
+    .select('user_id')
+    .eq('id', restaurantId)
+    .single();
+
+  if (error || !restaurant) {
+    throw new Error('店舗が見つかりません');
+  }
+
+  if (restaurant.user_id !== userId) {
+    throw new Error('この店舗を編集する権限がありません');
+  }
+
+  return restaurant;
+};
 
 // GET: レストラン詳細取得
 export async function GET(
@@ -7,19 +54,33 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data, error } = await supabase
+    const { data: restaurant, error } = await supabase
       .from('restaurants')
       .select('*')
       .eq('id', params.id)
       .single();
 
     if (error) {
-      return NextResponse.json({ error: 'レストランが見つかりません' }, { status: 404 });
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({
+          success: false,
+          error: '店舗が見つかりません',
+        }, { status: 404 });
+      }
+      throw new Error(error.message);
     }
 
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      data: restaurant,
+    });
+
+  } catch (error) {
+    console.error('Get restaurant error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : '店舗情報の取得に失敗しました',
+    }, { status: 500 });
   }
 }
 
@@ -28,22 +89,58 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 認証チェック
+    const user = await checkAuth(request);
+    
+    // 所有者チェック
+    await checkOwnership(params.id, user.id);
+
     const body = await request.json();
     
-    const { data, error } = await supabase
+    // バリデーション
+    const validatedData = updateRestaurantSchema.parse({
+      ...body,
+      id: params.id,
+    });
+
+    const { data: restaurant, error } = await supabase
       .from('restaurants')
-      .update(body)
+      .update(validatedData)
       .eq('id', params.id)
       .select()
       .single();
 
     if (error) {
-      return NextResponse.json({ error: '更新に失敗しました' }, { status: 500 });
+      throw new Error(error.message);
     }
 
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      data: restaurant,
+      message: '店舗を更新しました',
+    });
+
+  } catch (error) {
+    console.error('Update restaurant error:', error);
+    
+    if (error instanceof Error && error.message.includes('認証')) {
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+      }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('権限')) {
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+      }, { status: 403 });
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : '店舗の更新に失敗しました',
+    }, { status: 500 });
   }
 }
 
@@ -52,17 +149,46 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 認証チェック
+    const user = await checkAuth(request);
+    
+    // 所有者チェック
+    await checkOwnership(params.id, user.id);
+
     const { error } = await supabase
       .from('restaurants')
       .delete()
       .eq('id', params.id);
 
     if (error) {
-      return NextResponse.json({ error: '削除に失敗しました' }, { status: 500 });
+      throw new Error(error.message);
     }
 
-    return NextResponse.json({ message: '削除されました' });
-  } catch {
-    return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      message: '店舗を削除しました',
+    });
+
+  } catch (error) {
+    console.error('Delete restaurant error:', error);
+    
+    if (error instanceof Error && error.message.includes('認証')) {
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+      }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('権限')) {
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+      }, { status: 403 });
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : '店舗の削除に失敗しました',
+    }, { status: 500 });
   }
 } 

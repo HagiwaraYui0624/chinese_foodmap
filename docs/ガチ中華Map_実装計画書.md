@@ -41,7 +41,7 @@ npx create-next-app@14.2.30 . --typescript --tailwind --eslint --app --import-al
 pnpm install
 
 # 3. Next.jsのバージョンを要件定義書に合わせて固定
-pnpm add next@14.2.30 react@18.2.0 react-dom@18.2.0
+pnpm add next@14.2.30 react@18.3.1 react-dom@18.3.1
 
 # 4. Tailwind CSSのバージョンを要件定義書に合わせて固定
 pnpm add tailwindcss@3.4.17 postcss autoprefixer
@@ -129,8 +129,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 {
   "dependencies": {
     "next": "14.2.30",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "tailwindcss": "3.4.17",
     "zustand": "5.0.5",
     "@tanstack/react-query": "5.80.7",
@@ -145,7 +145,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 **注意事項：**
 - Next.js 14.2.30は安定版で、App RouterとServer Componentsを完全サポート
-- React 18.2.0はNext.js 14.2.30と互換性がある
+- React 18.3.1はNext.js 14.2.30と互換性がある
 - Tailwind CSS 3.4.17は最新の機能をサポートしつつ安定版
 - 各ライブラリのバージョンは要件定義書に従って固定
 
@@ -157,6 +157,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - Supabase SQLエディタで下記を実行
 
 ```sql
+-- ユーザーテーブル
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 店舗テーブル（user_idカラム追加）
 CREATE TABLE restaurants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
@@ -169,13 +179,17 @@ CREATE TABLE restaurants (
   parking BOOLEAN DEFAULT false,
   reservation_required BOOLEAN DEFAULT false,
   payment_methods TEXT[],
+  user_id UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- インデックス
+CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_restaurants_name ON restaurants(name);
 CREATE INDEX idx_restaurants_address ON restaurants(address);
 CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
+CREATE INDEX idx_restaurants_user_id ON restaurants(user_id);
 ```
 
 ---
@@ -198,26 +212,38 @@ CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 
 ### 4.1 型定義・ユーティリティ
 - `lib/types/restaurant.ts` に型定義
+- `lib/types/user.ts` にユーザー型定義
+- `lib/types/auth.ts` に認証型定義
 - `lib/utils/supabase.ts` でSupabaseクライアント作成
+- `lib/utils/auth.ts` で認証ユーティリティ作成
 - `lib/validations/restaurant.ts` でZodスキーマ作成
+- `lib/validations/auth.ts` で認証バリデーション作成
 
 ### 4.2 APIルート実装
 - `app/api/restaurants/route.ts`：GET/POST（一覧・追加）
 - `app/api/restaurants/[id]/route.ts`：GET/PUT/DELETE（詳細・編集・削除）
 - `app/api/restaurants/search/route.ts`：GET（検索）
+- `app/api/auth/login/route.ts`：POST（ログイン）
+- `app/api/auth/signup/route.ts`：POST（アカウント作成）
+- `app/api/auth/logout/route.ts`：POST（ログアウト）
+- `app/api/auth/me/route.ts`：GET（ユーザー情報取得）
 
 ### 4.3 Zustandストア実装
 - `stores/restaurantStore.ts`：店舗データ管理（updateRestaurant, deleteRestaurant 追加）
 - `stores/searchStore.ts`：検索状態管理
+- `stores/authStore.ts`：認証状態管理
 
 ### 4.4 カスタムフック実装
 - `hooks/useRestaurants.ts`：一覧取得
 - `hooks/useRestaurant.ts`：詳細取得
 - `hooks/useSearchRestaurants.ts`：検索
 - `hooks/useRestaurantForm.ts`：投稿・編集フォーム管理（編集・初期値対応）
+- `hooks/useAuth.ts`：認証状態管理
+- `hooks/useLogin.ts`：ログイン機能
+- `hooks/useSignup.ts`：アカウント作成機能
 
 ### 4.5 UIコンポーネント実装
-- `components/common/Header.tsx`：ヘッダー
+- `components/common/Header.tsx`：ヘッダー（ログイン状態表示追加）
 - `components/common/Footer.tsx`：フッター
 - `components/common/SearchBar.tsx`：検索バー
 - `components/common/RestaurantCard.tsx`：店舗カード
@@ -225,6 +251,10 @@ CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 - `components/common/LoadingSpinner.tsx`：ローディング
 - `components/common/ErrorMessage.tsx`：エラー表示
 - `components/forms/RestaurantForm.tsx`：店舗投稿・編集フォーム（mode/initialData対応）
+- `components/forms/LoginForm.tsx`：ログインフォーム
+- `components/forms/SignupForm.tsx`：アカウント作成フォーム
+- `components/auth/AuthGuard.tsx`：認証ガード
+- `components/auth/UserMenu.tsx`：ユーザーメニュー
 
 ### 4.6 ページ実装
 - `app/page.tsx`：トップページ（店舗一覧・検索）
@@ -232,6 +262,8 @@ CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 - `app/restaurant/[id]/edit/page.tsx`：店舗編集（新規追加）
 - `app/add-restaurant/page.tsx`：店舗投稿
 - `app/search/page.tsx`：検索結果
+- `app/login/page.tsx`：ログインページ
+- `app/signup/page.tsx`：アカウント作成ページ
 
 ### 4.7 スタイル
 - `app/globals.css`：全体スタイル
@@ -249,6 +281,8 @@ pnpm dev
 
 - http://localhost:3000 でアクセス
 - 店舗の投稿・検索・詳細表示ができるか確認
+- ユーザー認証（ログイン・アカウント作成・ログアウト）ができるか確認
+- 認証が必要な機能（投稿・編集・削除）が適切に制限されているか確認
 - Supabaseのデータベースと連携できているか確認
 
 ### 5.1 よくある問題と解決方法
@@ -256,7 +290,7 @@ pnpm dev
 #### 5.1.1 Next.jsのバージョンエラー
 ```sh
 # エラー: "next" has unmet peer dependency
-pnpm add next@14.2.30 react@18.2.0 react-dom@18.2.0
+pnpm add next@14.2.30 react@18.3.1 react-dom@18.3.1
 ```
 
 #### 5.1.2 Tailwind CSSが適用されない
@@ -286,10 +320,23 @@ cat .env.local
 cat lib/utils/supabase.ts
 ```
 
-#### 5.1.5 TypeScriptエラー
+#### 5.1.5 認証エラー
+```sh
+# 認証関連の環境変数を確認
+cat .env.local
+
+# 認証ユーティリティの設定を確認
+cat lib/utils/auth.ts
+
+# データベースのユーザーテーブルが正しく作成されているか確認
+```
+
+#### 5.1.6 TypeScriptエラー
 ```sh
 # 型定義を確認
 cat lib/types/restaurant.ts
+cat lib/types/user.ts
+cat lib/types/auth.ts
 
 # TypeScript設定を確認
 cat tsconfig.json
@@ -301,6 +348,7 @@ cat tsconfig.json
 2. **Next.jsのログを確認**
 3. **Supabaseのダッシュボードでデータベース接続を確認**
 4. **環境変数が正しく設定されているか確認**
+5. **認証状態が正しく管理されているか確認**
 
 ---
 
@@ -320,4 +368,4 @@ cat tsconfig.json
 
 **作成日**: 2024年12月28日  
 **作成者**: システム開発チーム  
-**バージョン**: 1.1
+**バージョン**: 1.3
