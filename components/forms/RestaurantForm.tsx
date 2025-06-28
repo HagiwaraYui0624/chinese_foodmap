@@ -183,7 +183,7 @@ export const RestaurantForm = () => {
                         key={option.value}
                         control={form.control}
                         name="holidays"
-                        render={({ field: checkboxField }) => (
+                        render={() => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                             <FormControl>
                               <Checkbox
