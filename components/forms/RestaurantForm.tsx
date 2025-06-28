@@ -167,9 +167,24 @@ export const RestaurantForm = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>定休日</FormLabel>
-                  <FormControl>
-                    <Input placeholder="例: 月曜日" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="定休日を選択" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="月曜日">月曜日</SelectItem>
+                      <SelectItem value="火曜日">火曜日</SelectItem>
+                      <SelectItem value="水曜日">水曜日</SelectItem>
+                      <SelectItem value="木曜日">木曜日</SelectItem>
+                      <SelectItem value="金曜日">金曜日</SelectItem>
+                      <SelectItem value="土曜日">土曜日</SelectItem>
+                      <SelectItem value="日曜日">日曜日</SelectItem>
+                      <SelectItem value="不定休">不定休</SelectItem>
+                      <SelectItem value="年中無休">年中無休</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
