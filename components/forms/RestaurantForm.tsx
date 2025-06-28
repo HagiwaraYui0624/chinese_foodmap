@@ -6,9 +6,29 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { Restaurant } from '@/lib/types/restaurant';
 
 export const RestaurantForm = () => {
-  const { form, isSubmitting, onSubmit } = useRestaurantForm();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleSuccess = (restaurant: Restaurant) => {
+    // 成功メッセージを表示
+    toast({
+      title: "店舗が追加されました！",
+      description: `${restaurant.name} を登録しました。`,
+      duration: 5000,
+    });
+
+    // ホーム画面に遷移
+    router.push('/');
+  };
+
+  const { form, isSubmitting, onSubmit } = useRestaurantForm({
+    onSuccess: handleSuccess,
+  });
 
   return (
     <Card className="max-w-2xl mx-auto">

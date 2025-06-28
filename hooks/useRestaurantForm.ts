@@ -5,7 +5,11 @@ import { createRestaurantSchema, CreateRestaurantInput } from '@/lib/validations
 import { useRestaurantStore } from '@/stores/restaurantStore';
 import { Restaurant } from '@/lib/types/restaurant';
 
-export const useRestaurantForm = () => {
+interface UseRestaurantFormOptions {
+  onSuccess?: (restaurant: Restaurant) => void;
+}
+
+export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addRestaurant, setError, clearError } = useRestaurantStore();
 
@@ -48,6 +52,11 @@ export const useRestaurantForm = () => {
       
       // フォームをリセット
       form.reset();
+      
+      // 成功時のコールバックを実行
+      if (options?.onSuccess) {
+        options.onSuccess(newRestaurant);
+      }
       
       return newRestaurant;
     } catch (error) {
