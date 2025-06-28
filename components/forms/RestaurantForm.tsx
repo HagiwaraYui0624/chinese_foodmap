@@ -167,24 +167,47 @@ export const RestaurantForm = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>定休日</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="定休日を選択" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="月曜日">月曜日</SelectItem>
-                      <SelectItem value="火曜日">火曜日</SelectItem>
-                      <SelectItem value="水曜日">水曜日</SelectItem>
-                      <SelectItem value="木曜日">木曜日</SelectItem>
-                      <SelectItem value="金曜日">金曜日</SelectItem>
-                      <SelectItem value="土曜日">土曜日</SelectItem>
-                      <SelectItem value="日曜日">日曜日</SelectItem>
-                      <SelectItem value="不定休">不定休</SelectItem>
-                      <SelectItem value="年中無休">年中無休</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { value: "月曜日", label: "月曜日" },
+                      { value: "火曜日", label: "火曜日" },
+                      { value: "水曜日", label: "水曜日" },
+                      { value: "木曜日", label: "木曜日" },
+                      { value: "金曜日", label: "金曜日" },
+                      { value: "土曜日", label: "土曜日" },
+                      { value: "日曜日", label: "日曜日" },
+                      { value: "不定休", label: "不定休" },
+                      { value: "年中無休", label: "年中無休" },
+                    ].map((option) => (
+                      <FormField
+                        key={option.value}
+                        control={form.control}
+                        name="holidays"
+                        render={({ field: checkboxField }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(option.value) || false}
+                                onCheckedChange={(checked) => {
+                                  const currentValues = field.value ? field.value.split(',').filter(Boolean) : [];
+                                  if (checked) {
+                                    field.onChange([...currentValues, option.value].join(','));
+                                  } else {
+                                    field.onChange(currentValues.filter(value => value !== option.value).join(','));
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-normal">
+                                {option.label}
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
