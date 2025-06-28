@@ -3,10 +3,15 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 
+interface DecodedToken {
+  userId: string;
+  email: string;
+}
+
 export default function DebugPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [token, setToken] = useState<string | null>(null);
-  const [decodedToken, setDecodedToken] = useState<any>(null);
+  const [decodedToken, setDecodedToken] = useState<DecodedToken | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -15,7 +20,7 @@ export default function DebugPage() {
       
       if (authToken) {
         try {
-          const decoded = JSON.parse(atob(authToken));
+          const decoded = JSON.parse(atob(authToken)) as DecodedToken;
           setDecodedToken(decoded);
         } catch (error) {
           console.error('Token decode error:', error);
