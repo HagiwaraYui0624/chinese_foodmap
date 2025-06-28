@@ -14,7 +14,7 @@ import Link from 'next/link';
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const { searchRestaurants, searchResults, isSearching, searchParams: currentSearchParams } = useSearchRestaurants();
+  const { searchRestaurants, searchResults, isSearching } = useSearchRestaurants();
 
   useEffect(() => {
     const query = searchParams.get('query');

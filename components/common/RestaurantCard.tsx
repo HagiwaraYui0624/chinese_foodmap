@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Clock, Car, Calendar } from 'lucide-react';
+import { MapPin, Phone, Car, Calendar } from 'lucide-react';
 import { Restaurant } from '@/lib/types/restaurant';
 
 interface RestaurantCardProps {
