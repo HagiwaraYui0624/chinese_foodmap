@@ -8,9 +8,14 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 interface AuthGuardProps {
   children: React.ReactNode;
   requireAuth?: boolean;
+  redirectIfAuthenticated?: boolean;
 }
 
-export const AuthGuard = ({ children, requireAuth = true }: AuthGuardProps) => {
+export const AuthGuard = ({ 
+  children, 
+  requireAuth = true, 
+  redirectIfAuthenticated = false 
+}: AuthGuardProps) => {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
@@ -18,11 +23,11 @@ export const AuthGuard = ({ children, requireAuth = true }: AuthGuardProps) => {
     if (!isLoading) {
       if (requireAuth && !isAuthenticated) {
         router.push('/login');
-      } else if (!requireAuth && isAuthenticated) {
+      } else if (redirectIfAuthenticated && isAuthenticated) {
         router.push('/');
       }
     }
-  }, [isAuthenticated, isLoading, requireAuth, router]);
+  }, [isAuthenticated, isLoading, requireAuth, redirectIfAuthenticated, router]);
 
   if (isLoading) {
     return (
@@ -36,7 +41,7 @@ export const AuthGuard = ({ children, requireAuth = true }: AuthGuardProps) => {
     return null;
   }
 
-  if (!requireAuth && isAuthenticated) {
+  if (redirectIfAuthenticated && isAuthenticated) {
     return null;
   }
 

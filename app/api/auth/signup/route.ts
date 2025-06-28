@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     
     // ユーザー作成
     const response = await authUtils.signup({
+      nickname: validatedData.nickname,
       email: validatedData.email,
       password: validatedData.password,
     });

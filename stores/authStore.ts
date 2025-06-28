@@ -2,7 +2,14 @@ import { create } from 'zustand';
 import { AuthState, User, AuthCredentials } from '@/lib/types/user';
 import { authUtils } from '@/lib/utils/auth';
 
+// クライアントサイドでのみlocalStorageを使用するためのヘルパー関数
+const setLocalStorage = (key: string, value: string): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(key, value);
+};
+
 interface AuthStore extends AuthState {
+  isInitialized: boolean;
   // Actions
   login: (credentials: AuthCredentials) => Promise<void>;
   signup: (credentials: AuthCredentials) => Promise<void>;
@@ -15,6 +22,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isInitialized: false,
   error: null,
 
   login: async (credentials: AuthCredentials) => {
@@ -23,8 +31,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const response = await authUtils.login(credentials);
       
       // トークンとユーザー情報をローカルストレージに保存
-      localStorage.setItem('auth_token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      setLocalStorage('auth_token', response.token);
+      setLocalStorage('user', JSON.stringify(response.user));
       
       set({
         user: response.user,
@@ -46,8 +54,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const response = await authUtils.signup(credentials);
       
       // トークンとユーザー情報をローカルストレージに保存
-      localStorage.setItem('auth_token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      setLocalStorage('auth_token', response.token);
+      setLocalStorage('user', JSON.stringify(response.user));
       
       set({
         user: response.user,
@@ -82,6 +90,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   checkAuth: async () => {
+    // 既に初期化済みの場合は何もしない
+    if (get().isInitialized) {
+      return;
+    }
+    
     set({ isLoading: true });
     try {
       const user = await authUtils.getCurrentUser();
@@ -89,6 +102,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         user,
         isAuthenticated: !!user,
         isLoading: false,
+        isInitialized: true,
         error: null,
       });
     } catch (error) {
@@ -96,6 +110,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        isInitialized: true,
         error: null,
       });
     }

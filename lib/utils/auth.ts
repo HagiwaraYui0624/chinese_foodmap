@@ -6,6 +6,17 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// クライアントサイドでのみlocalStorageを使用するためのヘルパー関数
+const getLocalStorage = (key: string): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(key);
+};
+
+const removeLocalStorage = (key: string): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(key);
+};
+
 export const authUtils = {
   // パスワードハッシュ化（簡易版 - 本番ではbcrypt等を使用）
   hashPassword: async (password: string): Promise<string> => {
@@ -18,7 +29,7 @@ export const authUtils = {
 
   // ユーザー登録
   signup: async (credentials: AuthCredentials): Promise<AuthResponse> => {
-    const { email, password } = credentials;
+    const { email, password, nickname } = credentials;
     
     // パスワードハッシュ化
     const passwordHash = await authUtils.hashPassword(password);
@@ -30,6 +41,7 @@ export const authUtils = {
         {
           email,
           password_hash: passwordHash,
+          nickname,
         }
       ])
       .select()
@@ -79,13 +91,13 @@ export const authUtils = {
   // ログアウト
   logout: async (): Promise<void> => {
     // トークンの削除はクライアントサイドで行う
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    removeLocalStorage('auth_token');
+    removeLocalStorage('user');
   },
 
   // 現在のユーザー取得
   getCurrentUser: async (): Promise<User | null> => {
-    const token = localStorage.getItem('auth_token');
+    const token = getLocalStorage('auth_token');
     if (!token) return null;
 
     try {
@@ -97,15 +109,15 @@ export const authUtils = {
         .single();
 
       if (error || !user) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
+        removeLocalStorage('auth_token');
+        removeLocalStorage('user');
         return null;
       }
 
       return user;
     } catch {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
+      removeLocalStorage('auth_token');
+      removeLocalStorage('user');
       return null;
     }
   },
