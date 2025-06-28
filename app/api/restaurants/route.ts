@@ -35,7 +35,6 @@ export async function GET() {
     const { data: restaurants, error } = await supabase
       .from('restaurants')
       .select('*')
-      .not('user_id', 'is', null)
       .order('created_at', { ascending: false });
 
     if (error) {

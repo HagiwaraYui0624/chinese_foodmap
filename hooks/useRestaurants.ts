@@ -24,8 +24,8 @@ export const useRestaurants = () => {
         throw new Error('レストラン一覧の取得に失敗しました');
       }
 
-      const data: Restaurant[] = await response.json();
-      setRestaurants(data);
+      const json = await response.json();
+      setRestaurants(json.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
