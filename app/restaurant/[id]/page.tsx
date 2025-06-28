@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/common/Header';
 import { Footer } from '@/components/common/Footer';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -10,13 +10,52 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRestaurant } from '@/hooks/useRestaurant';
-import { MapPin, Phone, Clock, Car, Calendar, ArrowLeft } from 'lucide-react';
+import { MapPin, Phone, Clock, Car, Calendar, ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RestaurantDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
   const id = params.id as string;
   const { restaurant, isLoading, error } = useRestaurant(id);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirm('この店舗を削除しますか？この操作は取り消せません。')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`/api/restaurants/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('削除に失敗しました');
+      }
+
+      toast({
+        title: "店舗を削除しました",
+        description: `${restaurant?.name} を削除しました。`,
+        duration: 5000,
+      });
+
+      router.push('/');
+    } catch (error) {
+      toast({
+        title: "エラー",
+        description: "店舗の削除に失敗しました。",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -56,13 +95,31 @@ export default function RestaurantDetailPage() {
       
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6">
+          <div className="mb-6 flex justify-between items-center">
             <Link href="/">
-              <Button variant="ghost" className="mb-4">
+              <Button variant="ghost">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 ホームに戻る
               </Button>
             </Link>
+            
+            <div className="flex gap-2">
+              <Link href={`/restaurant/${id}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  編集
+                </Button>
+              </Link>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? '削除中...' : '削除'}
+              </Button>
+            </div>
           </div>
 
           <Card>

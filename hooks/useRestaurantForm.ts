@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createRestaurantSchema, CreateRestaurantInput } from '@/lib/validations/restaurant';
@@ -7,11 +7,13 @@ import { Restaurant } from '@/lib/types/restaurant';
 
 interface UseRestaurantFormOptions {
   onSuccess?: (restaurant: Restaurant) => void;
+  initialData?: Restaurant;
+  mode?: 'create' | 'edit';
 }
 
 export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addRestaurant, setError, clearError } = useRestaurantStore();
+  const { addRestaurant, updateRestaurant, setError, clearError } = useRestaurantStore();
 
   const form = useForm<CreateRestaurantInput>({
     resolver: zodResolver(createRestaurantSchema),
@@ -29,13 +31,37 @@ export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
     },
   });
 
+  // 初期データがある場合はフォームに設定
+  useEffect(() => {
+    if (options?.initialData && options.mode === 'edit') {
+      form.reset({
+        name: options.initialData.name,
+        address: options.initialData.address,
+        phone: options.initialData.phone || '',
+        business_hours: options.initialData.business_hours || {},
+        holidays: options.initialData.holidays || '',
+        price_range: options.initialData.price_range || '',
+        seating_capacity: options.initialData.seating_capacity,
+        parking: options.initialData.parking,
+        reservation_required: options.initialData.reservation_required,
+        payment_methods: options.initialData.payment_methods || [],
+      });
+    }
+  }, [options?.initialData, options?.mode, form]);
+
   const onSubmit = async (data: CreateRestaurantInput) => {
     try {
       setIsSubmitting(true);
       clearError();
 
-      const response = await fetch('/api/restaurants', {
-        method: 'POST',
+      const url = options?.mode === 'edit' && options?.initialData 
+        ? `/api/restaurants/${options.initialData.id}`
+        : '/api/restaurants';
+
+      const method = options?.mode === 'edit' ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -44,21 +70,28 @@ export const useRestaurantForm = (options?: UseRestaurantFormOptions) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'レストランの追加に失敗しました');
+        throw new Error(errorData.error || 'レストランの操作に失敗しました');
       }
 
-      const newRestaurant: Restaurant = await response.json();
-      addRestaurant(newRestaurant);
+      const restaurant: Restaurant = await response.json();
       
-      // フォームをリセット
-      form.reset();
+      if (options?.mode === 'edit') {
+        updateRestaurant(restaurant.id, restaurant);
+      } else {
+        addRestaurant(restaurant);
+      }
+      
+      // フォームをリセット（作成モードの場合のみ）
+      if (options?.mode !== 'edit') {
+        form.reset();
+      }
       
       // 成功時のコールバックを実行
       if (options?.onSuccess) {
-        options.onSuccess(newRestaurant);
+        options.onSuccess(restaurant);
       }
       
-      return newRestaurant;
+      return restaurant;
     } catch (error) {
       setError(error instanceof Error ? error.message : 'エラーが発生しました');
       throw error;

@@ -10,30 +10,47 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Restaurant } from '@/lib/types/restaurant';
 
-export const RestaurantForm = () => {
+interface RestaurantFormProps {
+  mode?: 'create' | 'edit';
+  initialData?: Restaurant;
+  onSuccess?: (restaurant: Restaurant) => void;
+}
+
+export const RestaurantForm = ({ mode = 'create', initialData, onSuccess }: RestaurantFormProps) => {
   const router = useRouter();
   const { toast } = useToast();
 
   const handleSuccess = (restaurant: Restaurant) => {
-    // 成功メッセージを表示
-    toast({
-      title: "店舗が追加されました！",
-      description: `${restaurant.name} を登録しました。`,
-      duration: 5000,
-    });
+    if (mode === 'edit') {
+      toast({
+        title: "店舗情報を更新しました！",
+        description: `${restaurant.name} の情報を更新しました。`,
+        duration: 5000,
+      });
+    } else {
+      toast({
+        title: "店舗が追加されました！",
+        description: `${restaurant.name} を登録しました。`,
+        duration: 5000,
+      });
+      router.push('/');
+    }
 
-    // ホーム画面に遷移
-    router.push('/');
+    if (onSuccess) {
+      onSuccess(restaurant);
+    }
   };
 
   const { form, isSubmitting, onSubmit } = useRestaurantForm({
     onSuccess: handleSuccess,
+    initialData,
+    mode,
   });
 
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>新しいレストランを追加</CardTitle>
+        <CardTitle>{mode === 'edit' ? '店舗情報を編集' : '新しいレストランを追加'}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -217,10 +234,10 @@ export const RestaurantForm = () => {
               {isSubmitting ? (
                 <>
                   <LoadingSpinner size={16} className="mr-2" />
-                  追加中...
+                  {mode === 'edit' ? '更新中...' : '追加中...'}
                 </>
               ) : (
-                'レストランを追加'
+                mode === 'edit' ? '店舗情報を更新' : 'レストランを追加'
               )}
             </Button>
           </form>
