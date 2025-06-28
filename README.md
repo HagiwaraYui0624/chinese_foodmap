@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ガチ中華Map
 
-## Getting Started
+本格的な中華料理店の情報を共有するコミュニティサイトです。
 
-First, run the development server:
+## 機能
+
+- レストラン一覧表示
+- レストラン検索
+- レストラン詳細表示
+- 新しいレストランの投稿
+- Google Maps連携
+
+## 技術スタック
+
+- **フレームワーク**: Next.js 14.2.30 (App Router)
+- **言語**: TypeScript
+- **スタイリング**: Tailwind CSS 3.4.17
+- **状態管理**: Zustand 5.0.5
+- **フォーム管理**: React Hook Form 7.58.1 + Zod 3.25.67
+- **UIコンポーネント**: shadcn/ui
+- **データベース**: Supabase
+- **アイコン**: Lucide React 0.517.0
+
+## セットアップ
+
+### 1. 依存関係のインストール
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 環境変数の設定
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`.env.local` ファイルを作成し、以下の環境変数を設定してください：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-## Learn More
+### 3. Supabaseプロジェクトの設定
 
-To learn more about Next.js, take a look at the following resources:
+1. [Supabase](https://supabase.com/)で新規プロジェクトを作成
+2. SQLエディタで以下のテーブルを作成：
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```sql
+CREATE TABLE restaurants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  address TEXT NOT NULL,
+  phone VARCHAR(20),
+  business_hours JSONB,
+  holidays TEXT,
+  price_range VARCHAR(50),
+  seating_capacity INTEGER,
+  parking BOOLEAN DEFAULT false,
+  reservation_required BOOLEAN DEFAULT false,
+  payment_methods TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+CREATE INDEX idx_restaurants_name ON restaurants(name);
+CREATE INDEX idx_restaurants_address ON restaurants(address);
+CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
+```
 
-## Deploy on Vercel
+### 4. 開発サーバーの起動
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+http://localhost:3000 でアクセスできます。
+
+## プロジェクト構造
+
+```
+├── app/                    # Next.js App Router
+│   ├── api/               # APIルート
+│   ├── restaurant/        # レストラン詳細ページ
+│   ├── add-restaurant/    # レストラン投稿ページ
+│   ├── search/           # 検索結果ページ
+│   └── layout.tsx        # ルートレイアウト
+├── components/           # Reactコンポーネント
+│   ├── common/          # 共通コンポーネント
+│   ├── forms/           # フォームコンポーネント
+│   └── ui/              # shadcn/uiコンポーネント
+├── hooks/               # カスタムフック
+├── lib/                 # ユーティリティ
+│   ├── types/          # TypeScript型定義
+│   ├── utils/          # ユーティリティ関数
+│   └── validations/    # Zodスキーマ
+├── stores/             # Zustandストア
+└── docs/               # ドキュメント
+```
+
+## 開発
+
+### コマンド
+
+```bash
+# 開発サーバー起動
+pnpm dev
+
+# ビルド
+pnpm build
+
+# 本番サーバー起動
+pnpm start
+
+# リント
+pnpm lint
+```
+
+### コード規約
+
+- TypeScriptを使用
+- ESLint + Prettierでコードフォーマット
+- コンポーネントは関数コンポーネント + Hooks
+- 状態管理はZustandを使用
+- フォームバリデーションはZodを使用
+
+## ライセンス
+
+MIT License
