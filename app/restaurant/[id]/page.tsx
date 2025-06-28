@@ -45,7 +45,7 @@ export default function RestaurantDetailPage() {
       });
 
       router.push('/');
-    } catch (error) {
+    } catch {
       toast({
         title: "エラー",
         description: "店舗の削除に失敗しました。",

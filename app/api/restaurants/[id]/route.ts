@@ -14,20 +14,11 @@ export async function GET(
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'レストランが見つかりません' },
-          { status: 404 }
-        );
-      }
-      return NextResponse.json(
-        { error: 'レストラン詳細の取得に失敗しました' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'レストランが見つかりません' }, { status: 404 });
     }
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
   }
 }
@@ -51,7 +42,7 @@ export async function PUT(
     }
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
   }
 }
@@ -71,7 +62,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ message: '削除されました' });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
   }
 } 
