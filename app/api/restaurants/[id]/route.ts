@@ -70,9 +70,28 @@ export async function GET(
       throw new Error(error.message);
     }
 
+    // 画像データを取得
+    const { data: images } = await supabase
+      .from('images')
+      .select('*')
+      .eq('restaurant_id', params.id);
+
+    // カテゴリ別に画像をグループ化
+    const groupedImages = {
+      exterior: images?.filter(img => img.category === 'exterior').map(img => img.image_url) || [],
+      interior: images?.filter(img => img.category === 'interior').map(img => img.image_url) || [],
+      food: images?.filter(img => img.category === 'food').map(img => img.image_url) || [],
+      menu: images?.filter(img => img.category === 'menu').map(img => img.image_url) || [],
+    };
+
+    const restaurantWithImages = {
+      ...restaurant,
+      images: groupedImages,
+    };
+
     return NextResponse.json({
       success: true,
-      data: restaurant,
+      data: restaurantWithImages,
     });
 
   } catch (error) {
@@ -103,9 +122,12 @@ export async function PUT(
       id: params.id,
     });
 
+    // imagesフィールドを除外してからデータベースに更新
+    const { images, ...restaurantDataWithoutImages } = validatedData;
+
     const { data: restaurant, error } = await supabase
       .from('restaurants')
-      .update(validatedData)
+      .update(restaurantDataWithoutImages)
       .eq('id', params.id)
       .select()
       .single();
@@ -114,9 +136,20 @@ export async function PUT(
       throw new Error(error.message);
     }
 
+    // 画像データを含むレスポンスを返す
+    const restaurantWithImages = {
+      ...restaurant,
+      images: images || {
+        exterior: [],
+        interior: [],
+        food: [],
+        menu: [],
+      },
+    };
+
     return NextResponse.json({
       success: true,
-      data: restaurant,
+      data: restaurantWithImages,
       message: '店舗を更新しました',
     });
 

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 interface ImageUploadProps {
   category: 'exterior' | 'interior' | 'food' | 'menu';
@@ -11,6 +12,7 @@ interface ImageUploadProps {
   images: string[];
   onImagesChange: (images: string[]) => void;
   maxImages?: number;
+  restaurantId?: string;
 }
 
 export const ImageUpload = ({ 
@@ -18,10 +20,21 @@ export const ImageUpload = ({
   label, 
   images, 
   onImagesChange, 
-  maxImages = 5 
+  maxImages = 5,
+  restaurantId
 }: ImageUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { uploadImage } = useImageUpload({
+    restaurantId,
+    onSuccess: () => {
+      // 画像アップロード成功時の処理は親コンポーネントで管理
+    },
+    onError: (error) => {
+      alert(`画像のアップロードに失敗しました: ${error}`);
+    },
+  });
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -51,12 +64,25 @@ export const ImageUpload = ({
           continue;
         }
 
-        // 簡易的な画像アップロード（実際のプロジェクトではSupabase Storage等を使用）
-        const imageUrl = await uploadImage(file);
-        newImages.push(imageUrl);
+        // 画像をアップロード
+        if (restaurantId) {
+          // レストランIDがある場合はAPIを使用
+          const imageUrl = await uploadImage(file, category);
+          newImages.push(imageUrl);
+        } else {
+          // レストランIDがない場合は簡易的なBase64変換
+          const imageUrl = await convertFileToBase64(file);
+          newImages.push(imageUrl);
+        }
       }
 
+      // 画像を追加（バリデーションは発火させない）
       onImagesChange([...images, ...newImages]);
+      
+      // ファイル入力をリセット
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (error) {
       console.error('画像アップロードエラー:', error);
       alert('画像のアップロードに失敗しました。');
@@ -65,9 +91,7 @@ export const ImageUpload = ({
     }
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
-    // 実際のプロジェクトでは、Supabase StorageやCloudinary等を使用
-    // ここでは簡易的にBase64エンコードを使用
+  const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -82,7 +106,9 @@ export const ImageUpload = ({
     onImagesChange(newImages);
   };
 
-  const handleUploadClick = () => {
+  const handleUploadClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     fileInputRef.current?.click();
   };
 
@@ -108,6 +134,7 @@ export const ImageUpload = ({
                 className="hidden"
               />
               <Button
+                type="button"
                 onClick={handleUploadClick}
                 disabled={isUploading}
                 variant="outline"
@@ -142,7 +169,12 @@ export const ImageUpload = ({
                     className="w-full h-32 object-cover rounded-lg"
                   />
                   <button
-                    onClick={() => removeImage(index)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      removeImage(index);
+                    }}
                     className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X className="h-4 w-4" />

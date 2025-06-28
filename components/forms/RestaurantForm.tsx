@@ -30,7 +30,12 @@ export const RestaurantForm = ({ mode = 'create', initialData, onSuccess }: Rest
     menu: initialData?.images?.menu || [],
   });
 
-  const handleSuccess = (restaurant: Restaurant) => {
+  const handleSuccess = async (restaurant: Restaurant) => {
+    // レストラン作成後に画像をアップロード
+    if (mode === 'create' && restaurant.id) {
+      await uploadImagesToDatabase(restaurant.id);
+    }
+
     if (mode === 'edit') {
       toast({
         title: "店舗情報を更新しました！",
@@ -51,6 +56,73 @@ export const RestaurantForm = ({ mode = 'create', initialData, onSuccess }: Rest
     }
   };
 
+  // 画像をデータベースにアップロードする関数
+  const uploadImagesToDatabase = async (restaurantId: string) => {
+    console.log('画像アップロード開始:', restaurantId);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    
+    // 各カテゴリの画像をアップロード
+    const categories: Array<'exterior' | 'interior' | 'food' | 'menu'> = ['exterior', 'interior', 'food', 'menu'];
+    
+    for (const category of categories) {
+      const categoryImages = images[category];
+      console.log(`${category}画像数:`, categoryImages.length);
+      
+      for (const imageUrl of categoryImages) {
+        try {
+          console.log(`${category}画像アップロード中:`, imageUrl.substring(0, 50) + '...');
+          
+          // Base64データからファイル情報を抽出
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          
+          console.log('Blob情報:', {
+            size: blob.size,
+            type: blob.type,
+            lastModified: new Date().getTime()
+          });
+          
+          // FormDataを使用してmultipart/form-dataで送信
+          const formData = new FormData();
+          const fileName = `image_${Date.now()}.jpg`;
+          formData.append('file', blob, fileName);
+          formData.append('category', category);
+          
+          console.log('FormData内容:');
+          // FormDataの内容をログ出力（TypeScriptエラー回避）
+          console.log('file:', formData.get('file'));
+          console.log('category:', formData.get('category'));
+          
+          const uploadResponse = await fetch(`/api/restaurants/${restaurantId}/images`, {
+            method: 'POST',
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              // Content-Typeは自動設定されるため、手動で設定しない
+            },
+            body: formData,
+          });
+
+          console.log('アップロードレスポンス:', {
+            status: uploadResponse.status,
+            statusText: uploadResponse.statusText,
+            headers: Object.fromEntries(uploadResponse.headers.entries())
+          });
+
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            console.error(`画像アップロード失敗 (${category}):`, errorData);
+          } else {
+            console.log(`${category}画像アップロード成功`);
+          }
+        } catch (error) {
+          console.error(`画像アップロードエラー (${category}):`, error);
+        }
+      }
+    }
+    
+    console.log('画像アップロード完了');
+  };
+
   const { form, isSubmitting, onSubmit } = useRestaurantForm({
     onSuccess: handleSuccess,
     initialData,
@@ -59,15 +131,18 @@ export const RestaurantForm = ({ mode = 'create', initialData, onSuccess }: Rest
 
   // 画像変更ハンドラー
   const handleImagesChange = (category: keyof typeof images, newImages: string[]) => {
-    setImages(prev => ({
-      ...prev,
-      [category]: newImages
-    }));
-    
-    // フォームの値も更新
-    form.setValue('images', {
+    const updatedImages = {
       ...images,
       [category]: newImages
+    };
+    
+    setImages(updatedImages);
+    
+    // フォームの値も更新（バリデーションは発火させない）
+    form.setValue('images', updatedImages, { 
+      shouldValidate: false, 
+      shouldDirty: false, 
+      shouldTouch: false 
     });
   };
 
@@ -255,6 +330,39 @@ export const RestaurantForm = ({ mode = 'create', initialData, onSuccess }: Rest
                 )}
               />
 
+              {/* 画像アップロードセクション（Card内に移動） */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ImageUpload
+                  category="exterior"
+                  label="外装写真"
+                  images={images.exterior}
+                  onImagesChange={(newImages) => handleImagesChange('exterior', newImages)}
+                  restaurantId={mode === 'edit' ? initialData?.id : undefined}
+                />
+                <ImageUpload
+                  category="interior"
+                  label="内装写真"
+                  images={images.interior}
+                  onImagesChange={(newImages) => handleImagesChange('interior', newImages)}
+                  restaurantId={mode === 'edit' ? initialData?.id : undefined}
+                />
+                <ImageUpload
+                  category="food"
+                  label="料理写真"
+                  images={images.food}
+                  onImagesChange={(newImages) => handleImagesChange('food', newImages)}
+                  restaurantId={mode === 'edit' ? initialData?.id : undefined}
+                />
+                <ImageUpload
+                  category="menu"
+                  label="メニュー写真"
+                  images={images.menu}
+                  onImagesChange={(newImages) => handleImagesChange('menu', newImages)}
+                  restaurantId={mode === 'edit' ? initialData?.id : undefined}
+                />
+              </div>
+
+              {/* 追加ボタンを一番最後に */}
               <Button type="submit" disabled={isSubmitting} className="w-full">
                 {isSubmitting ? (
                   <>
@@ -269,34 +377,6 @@ export const RestaurantForm = ({ mode = 'create', initialData, onSuccess }: Rest
           </Form>
         </CardContent>
       </Card>
-
-      {/* 画像アップロードセクション */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ImageUpload
-          category="exterior"
-          label="外装写真"
-          images={images.exterior}
-          onImagesChange={(newImages) => handleImagesChange('exterior', newImages)}
-        />
-        <ImageUpload
-          category="interior"
-          label="内装写真"
-          images={images.interior}
-          onImagesChange={(newImages) => handleImagesChange('interior', newImages)}
-        />
-        <ImageUpload
-          category="food"
-          label="料理写真"
-          images={images.food}
-          onImagesChange={(newImages) => handleImagesChange('food', newImages)}
-        />
-        <ImageUpload
-          category="menu"
-          label="メニュー写真"
-          images={images.menu}
-          onImagesChange={(newImages) => handleImagesChange('menu', newImages)}
-        />
-      </div>
     </div>
   );
 }; 

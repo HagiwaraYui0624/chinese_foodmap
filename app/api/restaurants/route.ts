@@ -70,9 +70,32 @@ export async function GET() {
       throw new Error(error.message);
     }
 
+    // 各レストランの画像データを取得
+    const restaurantsWithImages = await Promise.all(
+      (Array.isArray(restaurants) ? restaurants : []).map(async (restaurant) => {
+        const { data: images } = await supabase
+          .from('images')
+          .select('*')
+          .eq('restaurant_id', restaurant.id);
+
+        // カテゴリ別に画像をグループ化
+        const groupedImages = {
+          exterior: images?.filter(img => img.category === 'exterior').map(img => img.image_url) || [],
+          interior: images?.filter(img => img.category === 'interior').map(img => img.image_url) || [],
+          food: images?.filter(img => img.category === 'food').map(img => img.image_url) || [],
+          menu: images?.filter(img => img.category === 'menu').map(img => img.image_url) || [],
+        };
+
+        return {
+          ...restaurant,
+          images: groupedImages,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: Array.isArray(restaurants) ? restaurants : [],
+      data: restaurantsWithImages,
     });
 
   } catch (error) {
@@ -95,9 +118,12 @@ export async function POST(request: NextRequest) {
     // バリデーション
     const validatedData = createRestaurantSchema.parse(body);
     
+    // imagesフィールドを除外してからデータベースに挿入
+    const { images, ...restaurantDataWithoutImages } = validatedData;
+    
     // ユーザーIDを追加
     const restaurantData = {
-      ...validatedData,
+      ...restaurantDataWithoutImages,
       user_id: user.id,
     };
 
@@ -111,9 +137,20 @@ export async function POST(request: NextRequest) {
       throw new Error(error.message);
     }
 
+    // 画像データを含むレスポンスを返す
+    const restaurantWithImages = {
+      ...restaurant,
+      images: images || {
+        exterior: [],
+        interior: [],
+        food: [],
+        menu: [],
+      },
+    };
+
     return NextResponse.json({
       success: true,
-      data: restaurant,
+      data: restaurantWithImages,
       message: '店舗を追加しました',
     }, { status: 201 });
 
