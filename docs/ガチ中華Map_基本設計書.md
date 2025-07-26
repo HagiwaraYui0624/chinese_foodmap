@@ -25,6 +25,7 @@
 │ id (PK)         │
 │ email           │
 │ password_hash   │
+│ nickname        │
 │ created_at      │
 │ updated_at      │
 └─────────────────┘
@@ -47,21 +48,72 @@
 │ created_at      │
 │ updated_at      │
 └─────────────────┘
+         │
+         │ 1:N
+         ▼
+┌─────────────────┐
+│     images      │
+├─────────────────┤
+│ id (PK)         │
+│ restaurant_id (FK) │
+│ category        │
+│ image_url       │
+│ file_name       │
+│ file_size       │
+│ mime_type       │
+│ created_at      │
+│ updated_at      │
+└─────────────────┘
 ```
 
-### 2.2 テーブル定義
+### 2.2 ストレージ設計
 
-#### 2.2.1 users（ユーザーテーブル）
+#### 2.2.1 Supabase Storage Bucket
+
+| Bucket名 | 用途 | アクセス権限 | 説明 |
+|---------|------|-------------|------|
+| restaurant-images | 店舗画像保存 | public | 店舗の外装・内装・料理・メニュー画像を保存 |
+
+**ファイル構造:**
+```
+restaurant-images/
+├── {restaurant_id}/
+│   ├── exterior/
+│   │   ├── image_1234567890.jpg
+│   │   └── image_1234567891.jpg
+│   ├── interior/
+│   │   ├── image_1234567892.jpg
+│   │   └── image_1234567893.jpg
+│   ├── food/
+│   │   ├── image_1234567894.jpg
+│   │   └── image_1234567895.jpg
+│   └── menu/
+│       ├── image_1234567896.jpg
+│       └── image_1234567897.jpg
+```
+
+**アクセス制御:**
+- 画像のアップロード: 認証済みユーザーのみ
+- 画像の閲覧: パブリックアクセス可能
+- 画像の削除: 店舗所有者のみ
+
+### 2.3 テーブル定義
+
+#### 2.3.1 users（ユーザーテーブル）
 
 | カラム名 | データ型 | 制約 | 説明 |
 |---------|---------|------|------|
 | id | UUID | PRIMARY KEY | ユーザーID |
 | email | VARCHAR(255) | NOT NULL UNIQUE | メールアドレス |
 | password_hash | VARCHAR(255) | NOT NULL | ハッシュ化されたパスワード |
-| created_at | TIMESTAMP | DEFAULT NOW() | 作成日時 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新日時 |
+| nickname | TEXT | NULL | ニックネーム |
+| created_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | 更新日時 |
 
-#### 2.2.2 restaurants（店舗テーブル）
+**制約:**
+- `email` は一意制約（UNIQUE）
+
+#### 2.3.2 restaurants（店舗テーブル）
 
 | カラム名 | データ型 | 制約 | 説明 |
 |---------|---------|------|------|
@@ -76,9 +128,12 @@
 | parking | BOOLEAN | DEFAULT false | 駐車場の有無 |
 | reservation_required | BOOLEAN | DEFAULT false | 予約必要フラグ |
 | payment_methods | TEXT[] | NULL | 決済方法の配列 |
-| user_id | UUID | NOT NULL | ユーザID |
-| created_at | TIMESTAMP | DEFAULT NOW() | 作成日時 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新日時 |
+| created_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | 更新日時 |
+| user_id | UUID | NOT NULL | ユーザID（外部キー） |
+
+**制約:**
+- `user_id` は `users.id` を参照
 
 **business_hours JSONB形式例:**
 ```json
@@ -93,7 +148,25 @@
 }
 ```
 
-### 2.3 インデックス設計
+#### 2.3.3 images（画像テーブル）
+
+| カラム名 | データ型 | 制約 | 説明 |
+|---------|---------|------|------|
+| id | UUID | PRIMARY KEY | 画像ID |
+| restaurant_id | UUID | NOT NULL | 店舗ID（外部キー） |
+| category | VARCHAR(20) | NOT NULL | 画像カテゴリ（exterior/interior/food/menu） |
+| image_url | TEXT | NOT NULL | 画像のURL |
+| file_name | VARCHAR(255) | NULL | ファイル名 |
+| file_size | INTEGER | NULL | ファイルサイズ（バイト） |
+| mime_type | VARCHAR(100) | NULL | MIMEタイプ |
+| created_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | 更新日時 |
+
+**制約:**
+- `restaurant_id` は `restaurants.id` を参照（CASCADE削除）
+- `category` は `exterior`, `interior`, `food`, `menu` のいずれか
+
+### 2.4 インデックス設計
 
 ```sql
 -- users テーブル
@@ -104,15 +177,21 @@ CREATE INDEX idx_restaurants_name ON restaurants(name);
 CREATE INDEX idx_restaurants_address ON restaurants(address);
 CREATE INDEX idx_restaurants_created_at ON restaurants(created_at DESC);
 CREATE INDEX idx_restaurants_user_id ON restaurants(user_id);
+
+-- images テーブル
+CREATE INDEX idx_images_category ON images(category);
+CREATE INDEX idx_images_restaurant_id ON images(restaurant_id);
 ```
 
-### 2.4 データ型定義（TypeScript）
+### 2.5 データ型定義（TypeScript）
 
 ```typescript
 // ユーザー情報
 interface User {
   id: string;
   email: string;
+  password_hash: string;
+  nickname?: string;
   created_at: string;
   updated_at: string;
 }
@@ -130,7 +209,20 @@ interface Restaurant {
   parking: boolean;
   reservation_required: boolean;
   payment_methods?: string[];
+  created_at: string;
+  updated_at: string;
   user_id: string;
+}
+
+// 画像情報
+interface RestaurantImage {
+  id: string;
+  restaurant_id: string;
+  category: 'exterior' | 'interior' | 'food' | 'menu';
+  image_url: string;
+  file_name?: string;
+  file_size?: number;
+  mime_type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -216,242 +308,5 @@ interface AuthResponse {
 interface RestaurantCardProps {
   restaurant: Restaurant;
   onClick: () => void;
-}
-```
-
-#### 3.2.2 店舗詳細ページ（DETAIL）
-
-**レイアウト構成:**
-```
-┌─────────────────────────────────────┐
-│ Header                              │
-├─────────────────────────────────────┤
-│ Restaurant Info                     │
-│ ┌─────────────────────────────────┐ │
-│ │ Name                            │ │
-│ │ Address                         │ │
-│ │ Phone                           │ │
-│ │ Business Hours                  │ │
-│ │ Price Range                     │ │
-│ │ Seating Capacity                │ │
-│ │ Parking                         │ │
-│ │ Reservation Required            │ │
-│ │ Payment Methods                 │ │
-│ └─────────────────────────────────┘ │
-├─────────────────────────────────────┤
-│ Map Link                           │
-│ ┌─────────────────────────────────┐ │
-│ │ [View on Google Maps]           │ │
-│ └─────────────────────────────────┘ │
-├─────────────────────────────────────┤
-│ Action Buttons                      │
-│ [Back] [Edit] [Delete] [Add Restaurant] │
-├─────────────────────────────────────┤
-│ Footer                              │
-└─────────────────────────────────────┘
-```
-
-**コンポーネント構成:**
-- RestaurantInfo
-  - 基本情報表示
-  - 営業時間表示
-  - 施設情報表示
-- MapLink
-  - Google Mapsへのリンク
-- ActionButtons
-  - 戻るボタン
-  - 編集ボタン（新規追加）
-  - 削除ボタン（新規追加）
-  - 店舗投稿ボタン
-
-#### 3.2.3 店舗編集ページ（EDIT）
-
-**レイアウト構成:**
-```
-┌─────────────────────────────────────┐
-│ Header                              │
-├─────────────────────────────────────┤
-│ Restaurant Edit Form                │
-│ ┌─────────────────────────────────┐ │
-│ │ 既存情報を編集できるフォーム      │ │
-│ └─────────────────────────────────┘ │
-├─────────────────────────────────────┤
-│ Action Buttons                      │
-│ [Cancel] [Update]                   │
-├─────────────────────────────────────┤
-│ Footer                              │
-└─────────────────────────────────────┘
-```
-
-**フォーム項目:**
-- 店舗名（必須）
-- 住所（必須）
-- 電話番号
-- 営業時間
-- 定休日
-- 価格帯
-- 席数
-- 駐車場の有無
-- 予約必要フラグ
-- 決済方法
-
-#### 3.2.4 検索結果ページ（SEARCH）
-
-**レイアウト構成:**
-```
-┌─────────────────────────────────────┐
-│ Header                              │
-├─────────────────────────────────────┤
-│ Search Bar                          │
-├─────────────────────────────────────┤
-│ Search Results                      │
-│ ┌─────────────────────────────────┐ │
-│ │ Results: 15 restaurants found   │ │
-│ └─────────────────────────────────┘ │
-│ ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│ │Card 1   │ │Card 2   │ │Card 3   │ │
-│ └─────────┘ └─────────┘ └─────────┘ │
-│ ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│ │Card 4   │ │Card 5   │ │Card 6   │ │
-│ └─────────┘ └─────────┘ └─────────┘ │
-├─────────────────────────────────────┤
-│ Footer                              │
-└─────────────────────────────────────┘
-```
-
-## 4. 画面遷移設計
-
-### 4.1 画面遷移図
-
-```
-                    ┌─────────────┐
-                    │    TOP      │
-                    │   (/)       │
-                    └─────────────┘
-                           │
-                           │ 検索実行
-                           ▼
-                    ┌─────────────┐
-                    │   SEARCH    │
-                    │  (/search)  │
-                    └─────────────┘
-                           │
-                           │ 店舗選択
-                           ▼
-                    ┌─────────────┐
-                    │   DETAIL    │
-                    │(/restaurant/│
-                    │    [id])    │
-                    └─────────────┘
-                           │
-                           │ 戻る
-                           │
-                    ┌─────────────┐
-                    │    TOP      │
-                    │   (/)       │
-                    └─────────────┘
-```
-
-### 4.2 遷移条件詳細
-
-#### 4.2.1 TOP → SEARCH
-- **トリガー**: 検索ボタンクリック
-- **条件**: 検索クエリが入力されている
-- **パラメータ**: query, area
-
-#### 4.2.2 TOP → DETAIL
-- **トリガー**: 店舗カードクリック
-- **パラメータ**: restaurant_id
-
-#### 4.2.3 TOP → ADD
-- **トリガー**: 「店舗を投稿」ボタンクリック
-
-#### 4.2.4 SEARCH → DETAIL
-- **トリガー**: 検索結果の店舗カードクリック
-- **パラメータ**: restaurant_id
-
-#### 4.2.5 DETAIL → TOP
-- **トリガー**: 「戻る」ボタンクリック
-- **条件**: ブラウザの戻るボタンまたはナビゲーション
-
-#### 4.2.6 ADD → TOP
-- **トリガー**: 投稿完了
-- **条件**: フォーム送信成功
-- **処理**: 成功メッセージ表示後、TOPページにリダイレクト
-
-### 4.3 エラーハンドリング
-
-#### 4.3.1 404エラー
-- 存在しない店舗IDでアクセス
-- 存在しないページへのアクセス
-- **対応**: 404ページ表示
-
-#### 4.3.2 バリデーションエラー
-- 必須項目未入力
-- 不正なデータ形式
-- **対応**: エラーメッセージ表示、フォーム再表示
-
-#### 4.3.3 サーバーエラー
-- API通信エラー
-- データベースエラー
-- **対応**: エラーページ表示
-
-## 5. コンポーネント設計
-
-### 5.1 共通コンポーネント
-
-#### 5.1.1 Header
-```typescript
-interface HeaderProps {
-  title?: string;
-  showBackButton?: boolean;
-  onBackClick?: () => void;
-}
-```
-
-#### 5.1.2 SearchBar
-```typescript
-interface SearchBarProps {
-  onSearch: (query: string) => void;
-  placeholder?: string;
-  defaultValue?: string;
-}
-```
-
-#### 5.1.3 RestaurantCard
-```typescript
-interface RestaurantCardProps {
-  restaurant: Restaurant;
-  onClick: () => void;
-  showDetails?: boolean;
-}
-```
-
-### 5.2 ページコンポーネント
-
-#### 5.2.1 TopPage
-```typescript
-interface TopPageProps {
-  restaurants: Restaurant[];
-  onSearch: (params: SearchParams) => void;
-  onRestaurantClick: (id: string) => void;
-  onAddRestaurant: () => void;
-}
-```
-
-#### 5.2.2 DetailPage
-```typescript
-interface DetailPageProps {
-  restaurant: Restaurant;
-  onBack: () => void;
-  onAddRestaurant: () => void;
-}
-```
-
-#### 5.2.3 AddPage
-```typescript
-interface AddPageProps {
-  onSubmit: (data: RestaurantFormData) => void;
-  onCancel: () => void;
 }
 ```
