@@ -53,7 +53,7 @@ export async function POST(
     if (restaurant.user_id !== authResult.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
+
     // フォームデータを取得
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -101,7 +101,7 @@ export async function POST(
 
     // 公開URLを取得
     const { data: urlData } = supabaseAdmin.storage
-      .from('restaurant-images') // バケット名を正しいものに戻す
+      .from('restaurant-images')
       .getPublicUrl(`${params.id}/${category}/${fileName}`);
     
     // データベースに画像情報を保存
@@ -117,14 +117,14 @@ export async function POST(
       })
       .select()
       .single();
-    
+
     if (insertError) {
       return NextResponse.json(
         { error: insertError.message },
         { status: 500 }
       );
     }
-    
+
     return NextResponse.json(imageData, { status: 201 });
   } catch (error) {
     return NextResponse.json(
@@ -148,13 +148,13 @@ export async function DELETE(
         { status: 400 }
       );
     }
-    
+
     // 認証チェック
     const authResult = await verifyAuth(request);
     if (!authResult.success) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     // 画像が存在し、ユーザーが所有者かチェック
     const { data: image, error: imageError } = await supabaseAdmin
       .from('images')
@@ -169,20 +169,20 @@ export async function DELETE(
     if (image.restaurants.user_id !== authResult.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
+
     // 画像を削除
     const { error: deleteError } = await supabaseAdmin
       .from('images')
       .delete()
       .eq('id', imageId);
-    
+
     if (deleteError) {
       return NextResponse.json(
         { error: deleteError.message },
         { status: 500 }
       );
     }
-    
+
     return NextResponse.json({ message: 'Image deleted successfully' });
   } catch (error) {
     return NextResponse.json(

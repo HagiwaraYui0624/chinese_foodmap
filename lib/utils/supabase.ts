@@ -6,8 +6,20 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // クライアント用（フロントエンド）
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// サーバー用（API）- サービスロールキーを使用
+// サーバー用（API）- サービスロールキーを使用してRLSをバイパス
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-export const supabaseAdmin = supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : supabase; // フォールバック 
+
+if (!supabaseServiceKey) {
+  console.error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+}
+
+export const supabaseAdmin = createClient(
+  supabaseUrl, 
+  supabaseServiceKey || supabaseAnonKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+); 
