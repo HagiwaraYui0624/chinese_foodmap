@@ -7,12 +7,15 @@ import { RestaurantCard } from '@/components/common/RestaurantCard';
 import { MapLink } from '@/components/common/MapLink';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
+import { ImageGallery } from '@/components/common/ImageGallery';
+import { ImageUpload } from '@/components/forms/ImageUpload';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Camera } from 'lucide-react';
 import { useRestaurant } from '@/hooks/useRestaurant';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function RestaurantDetailPage() {
   const params = useParams();
@@ -20,6 +23,7 @@ export default function RestaurantDetailPage() {
   const id = params.id as string;
   const { restaurant, isLoading, deleteRestaurant } = useRestaurant(id);
   const { isAuthenticated, user } = useAuth();
+  const [showUploadForm, setShowUploadForm] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm('この店舗を削除しますか？')) {
@@ -67,7 +71,7 @@ export default function RestaurantDetailPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="mb-6">
             <Link href="/">
               <Button variant="outline" size="sm">
@@ -77,7 +81,7 @@ export default function RestaurantDetailPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div>
               <RestaurantCard restaurant={restaurant} showDetails={true} />
               
@@ -100,6 +104,44 @@ export default function RestaurantDetailPage() {
             <div>
               <MapLink address={restaurant.address} />
             </div>
+          </div>
+
+          {/* 画像セクション */}
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">店舗画像</h2>
+              {canEdit && (
+                <Button
+                  onClick={() => setShowUploadForm(!showUploadForm)}
+                  variant="outline"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  {showUploadForm ? 'キャンセル' : '画像を追加'}
+                </Button>
+              )}
+            </div>
+
+            {canEdit && showUploadForm && (
+              <div className="mb-8 p-6 border rounded-lg bg-gray-50">
+                <h3 className="text-lg font-semibold mb-4">画像をアップロード</h3>
+                <ImageUpload
+                  restaurantId={restaurant.id}
+                  onUploadSuccess={() => {
+                    setShowUploadForm(false);
+                    // 画像ギャラリーを再読み込み
+                    window.location.reload();
+                  }}
+                />
+              </div>
+            )}
+
+            <ImageGallery
+              restaurantId={restaurant.id}
+              canEdit={canEdit || false}
+              onImageDeleted={() => {
+                // 画像削除後の処理（必要に応じて）
+              }}
+            />
           </div>
         </div>
       </main>
