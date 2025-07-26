@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,11 +35,7 @@ export function ImageGallery({ restaurantId, canEdit = false, onImageDeleted }: 
   const [isLoading, setIsLoading] = useState(true);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchImages();
-  }, [restaurantId]);
-
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     try {
       const response = await fetch(`/api/restaurants/${restaurantId}/images`);
       if (response.ok) {
@@ -51,7 +47,11 @@ export function ImageGallery({ restaurantId, canEdit = false, onImageDeleted }: 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
 
   const handleDeleteImage = async (imageId: string) => {
     if (!confirm('この画像を削除しますか？')) {

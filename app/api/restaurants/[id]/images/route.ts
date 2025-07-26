@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/utils/supabase';
 
 // 簡易的な認証チェック（後で実装予定）
-const verifyAuth = async (request: NextRequest) => {
+const verifyAuth = async (_request: NextRequest) => {
   // 実際の認証ロジックは後で実装
   // 現在は常に成功として扱う
   return { success: true, userId: 'temp-user-id' };
@@ -25,7 +25,7 @@ export async function GET(
     }
     
     return NextResponse.json(images);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -91,7 +91,7 @@ export async function POST(
     const fileName = `image_${timestamp}.${fileExtension}`;
     
     // Supabase Storageにアップロード
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('restaurant-images')
       .upload(`${params.id}/${category}/${fileName}`, buffer, {
         contentType: file.type,
@@ -132,7 +132,7 @@ export async function POST(
     }
     
     return NextResponse.json(imageData, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -190,7 +190,7 @@ export async function DELETE(
     }
     
     return NextResponse.json({ message: 'Image deleted successfully' });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
