@@ -86,22 +86,26 @@ export async function POST(
     
     // Supabase Storageにアップロード
     const { error: uploadError } = await supabase.storage
-      .from('restaurant-images')
+      .from('restaurant-images') // バケット名を正しいものに戻す
       .upload(`${params.id}/${category}/${fileName}`, buffer, {
         contentType: file.type,
         upsert: false
       });
-    
+
     if (uploadError) {
+      console.error('Supabase upload error:', uploadError); // ログに詳細出力
       return NextResponse.json(
-        { error: 'Failed to upload image' },
+        { 
+          error: `Failed to upload image: ${uploadError.message}`,
+          details: uploadError // 詳細エラー情報も返す
+        }, 
         { status: 500 }
       );
     }
-    
+
     // 公開URLを取得
     const { data: urlData } = supabase.storage
-      .from('restaurant-images')
+      .from('restaurant-images') // バケット名を正しいものに戻す
       .getPublicUrl(`${params.id}/${category}/${fileName}`);
     
     // データベースに画像情報を保存
