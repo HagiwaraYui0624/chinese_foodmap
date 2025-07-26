@@ -19,9 +19,9 @@ export async function GET(
     }
     
     return NextResponse.json(images);
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -126,9 +126,9 @@ export async function POST(
     }
     
     return NextResponse.json(imageData, { status: 201 });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -184,9 +184,9 @@ export async function DELETE(
     }
     
     return NextResponse.json({ message: 'Image deleted successfully' });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
