@@ -45,7 +45,7 @@ export const verifyAuth = async (request: NextRequest) => {
     }
 
     return { success: true, userId: user.id, user };
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Invalid token' };
   }
 };
