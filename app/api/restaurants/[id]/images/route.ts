@@ -33,6 +33,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 一時的に認証チェックをコメントアウト
+    /*
     // 認証チェック
     const authResult = await verifyAuth(request);
     if (!authResult.success) {
@@ -53,6 +55,7 @@ export async function POST(
     if (restaurant.user_id !== authResult.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    */
     
     // フォームデータを取得
     const formData = await request.formData();
