@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/utils/supabase';
+import { supabaseAdmin } from '@/lib/utils/supabase';
 import { verifyAuth } from '@/lib/utils/auth';
 
 // GET: 店舗の画像一覧取得
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: images, error } = await supabase
+    const { data: images, error } = await supabaseAdmin
       .from('images')
       .select('*')
       .eq('restaurant_id', params.id)
@@ -39,15 +39,19 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // レストランの存在確認のみ（権限チェックは簡略化）
-    const { data: restaurant, error: restaurantError } = await supabase
+    // レストランが存在し、ユーザーが所有者かチェック
+    const { data: restaurant, error: restaurantError } = await supabaseAdmin
       .from('restaurants')
-      .select('id')
+      .select('id, user_id')
       .eq('id', params.id)
       .single();
     
     if (restaurantError || !restaurant) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+    }
+    
+    if (restaurant.user_id !== authResult.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     // フォームデータを取得
@@ -77,7 +81,7 @@ export async function POST(
     const fileName = `image_${timestamp}.${fileExtension}`;
     
     // Supabase Storageにアップロード（Fileオブジェクトを直接使用）
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('restaurant-images')
       .upload(`${params.id}/${category}/${fileName}`, file, {
         contentType: file.type,
@@ -96,12 +100,12 @@ export async function POST(
     }
 
     // 公開URLを取得
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from('restaurant-images') // バケット名を正しいものに戻す
       .getPublicUrl(`${params.id}/${category}/${fileName}`);
     
     // データベースに画像情報を保存
-    const { data: imageData, error: insertError } = await supabase
+    const { data: imageData, error: insertError } = await supabaseAdmin
       .from('images')
       .insert({
         restaurant_id: params.id,
@@ -151,10 +155,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // 画像が存在するかチェック（権限チェックは簡略化）
-    const { data: image, error: imageError } = await supabase
+    // 画像が存在し、ユーザーが所有者かチェック
+    const { data: image, error: imageError } = await supabaseAdmin
       .from('images')
-      .select('*')
+      .select('*, restaurants(user_id)')
       .eq('id', imageId)
       .single();
 
@@ -162,8 +166,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
     
+    if (image.restaurants.user_id !== authResult.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
     // 画像を削除
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from('images')
       .delete()
       .eq('id', imageId);
