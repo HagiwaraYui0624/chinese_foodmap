@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/utils/supabase';
 
 // 簡易的な認証チェック（後で実装予定）
-const verifyAuth = async (_request: NextRequest) => {
+const verifyAuth = async () => {
   // 実際の認証ロジックは後で実装
   // 現在は常に成功として扱う
   return { success: true, userId: 'temp-user-id' };
@@ -40,7 +40,7 @@ export async function POST(
 ) {
   try {
     // 認証チェック
-    const authResult = await verifyAuth(request);
+    const authResult = await verifyAuth();
     if (!authResult.success) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -156,7 +156,7 @@ export async function DELETE(
     }
     
     // 認証チェック
-    const authResult = await verifyAuth(request);
+    const authResult = await verifyAuth();
     if (!authResult.success) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
