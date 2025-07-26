@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { NextRequest } from 'next/server';
 import { AuthCredentials, AuthResponse, User } from '@/lib/types/user';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -15,6 +16,38 @@ const getLocalStorage = (key: string): string | null => {
 const removeLocalStorage = (key: string): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(key);
+};
+
+// APIエンドポイント用の認証関数
+export const verifyAuth = async (request: NextRequest) => {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { success: false, error: 'No token provided' };
+    }
+
+    const token = authHeader.substring(7); // "Bearer " を除去
+    const decoded = JSON.parse(atob(token));
+    
+    if (!decoded.userId) {
+      return { success: false, error: 'Invalid token format' };
+    }
+
+    // ユーザー情報を取得
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', decoded.userId)
+      .single();
+
+    if (error || !user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    return { success: true, userId: user.id, user };
+  } catch (error) {
+    return { success: false, error: 'Invalid token' };
+  }
 };
 
 export const authUtils = {

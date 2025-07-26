@@ -53,8 +53,17 @@ export function ImageUpload({ restaurantId, onUploadSuccess }: ImageUploadProps)
       formData.append('file', file);
       formData.append('category', category);
 
+      // 認証トークンを取得
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/restaurants/${restaurantId}/images`, {
         method: 'POST',
+        headers,
         body: formData,
       });
 

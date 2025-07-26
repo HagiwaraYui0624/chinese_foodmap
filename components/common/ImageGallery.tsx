@@ -61,8 +61,17 @@ export function ImageGallery({ restaurantId, canEdit = false, onImageDeleted }: 
     setDeletingIds(prev => new Set(prev).add(imageId));
 
     try {
+      // 認証トークンを取得
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/restaurants/${restaurantId}/images?imageId=${imageId}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {
